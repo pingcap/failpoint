@@ -1,0 +1,2 @@
+# failpoint
+Golang Failepoint
