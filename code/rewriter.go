@@ -22,6 +22,7 @@ type Rewriter struct {
 	currentPath   string
 	currentFile   *ast.File
 	failpointName string
+	rewritten     bool
 }
 
 func NewRewriter(path string) *Rewriter {
@@ -30,18 +31,170 @@ func NewRewriter(path string) *Rewriter {
 	}
 }
 
-func (r *Rewriter) rewriteBlockStmts(stmts []ast.Stmt) error {
+func (r *Rewriter) rewriteFuncLit(fn *ast.FuncLit) error {
+	return r.rewriteStmts(fn.Body.List)
+}
+
+func (r *Rewriter) rewriteCallExpr(call *ast.CallExpr) error {
+	if fn, ok := call.Fun.(*ast.FuncLit); ok {
+		err := r.rewriteFuncLit(fn)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, arg := range call.Args {
+		if fn, ok := arg.(*ast.FuncLit); ok {
+			err := r.rewriteFuncLit(fn)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *Rewriter) rewriteAssign(v *ast.AssignStmt) error {
+	// fn1, fn2, fn3, ... := func(){...}, func(){...}, func(){...}, ...
+	// x, fn := 100, func() {
+	//     failpoint.Marker(fpname, func() {
+	//         ...
+	//     })
+	// }
+	for _, v := range v.Rhs {
+		if fn, ok := v.(*ast.FuncLit); ok {
+			err := r.rewriteFuncLit(fn)
+			if err != nil {
+				return err
+			}
+		}
+		if call, ok := v.(*ast.CallExpr); ok {
+			err := r.rewriteCallExpr(call)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *Rewriter) rewriteBinaryExpr(expr *ast.BinaryExpr) error {
+	// a && func() bool {...} ()
+	// func() bool {...} () && a
+	if fn, ok := expr.X.(*ast.CallExpr); ok {
+		err := r.rewriteCallExpr(fn)
+		if err != nil {
+			return err
+		}
+	}
+	if fn, ok := expr.Y.(*ast.CallExpr); ok {
+		err := r.rewriteCallExpr(fn)
+		if err != nil {
+			return err
+		}
+	}
+	// func() bool {...} () && func() bool {...} () && a
+	// func() bool {...} () && a && func() bool {...} () && a
+	if binaryExpr, ok := expr.X.(*ast.BinaryExpr); ok {
+		err := r.rewriteBinaryExpr(binaryExpr)
+		if err != nil {
+			return err
+		}
+	}
+	if binaryExpr, ok := expr.Y.(*ast.BinaryExpr); ok {
+		err := r.rewriteBinaryExpr(binaryExpr)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Rewriter) rewriteIfStmt(v *ast.IfStmt) error {
+	// if a, b := func() {...}, func() int {...}(); cond {...}
+	if v.Init != nil {
+		err := r.rewriteAssign(v.Init.(*ast.AssignStmt))
+		if err != nil {
+			return err
+		}
+	}
+	if binaryExpr, ok := v.Cond.(*ast.BinaryExpr); ok {
+		err := r.rewriteBinaryExpr(binaryExpr)
+		if err != nil {
+			return err
+		}
+	}
+	err := r.rewriteStmts(v.Body.List)
+	if err != nil {
+		return err
+	}
+	if v.Else != nil {
+		if elseIf, ok := v.Else.(*ast.IfStmt); ok {
+			return r.rewriteIfStmt(elseIf)
+		}
+		if els, ok := v.Else.(*ast.BlockStmt); ok {
+			return r.rewriteStmts(els.List)
+		}
+	}
+	return nil
+}
+
+func (r *Rewriter) rewriteExprs(exprs []ast.Expr) error {
+	for _, expr := range exprs {
+		// return func(){...},
+		if fn, ok := expr.(*ast.FuncLit); ok {
+			err := r.rewriteFuncLit(fn)
+			if err != nil {
+				return err
+			}
+		}
+		// return func() int {...}()
+		if fn, ok := expr.(*ast.CallExpr); ok {
+			err := r.rewriteCallExpr(fn)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 	for i, block := range stmts {
 		switch v := block.(type) {
-		case *ast.AssignStmt:
-			// var x = func() {
+		case *ast.DeclStmt:
+			// var fn1, fn2, fn3, ... = func(){...}, func(){...}, func(){...}, ...
+			// var x, fn = 100, func() {
 			//     failpoint.Marker(fpname, func() {
 			//         ...
 			//     })
 			// }
-			// TODO
+			specs := v.Decl.(*ast.GenDecl).Specs
+			for _, spec := range specs {
+				vs, ok := spec.(*ast.ValueSpec)
+				if !ok {
+					continue
+				}
+				for _, v := range vs.Values {
+					fn, ok := v.(*ast.FuncLit)
+					if !ok {
+						continue
+					}
+					err := r.rewriteStmts(fn.Body.List)
+					if err != nil {
+						return err
+					}
+				}
+			}
 
 		case *ast.ExprStmt:
+			// failpoint.Marker("failpoint.name", func(context.Context, *failpoint.Arg)) {...}
+			// failpoint.Break()
+			// failpoint.Break("label")
+			// failpoint.Continue()
+			// failpoint.Continue("label")
+			// failpoint.Goto("label")
+			// failpoint.Label("label")
 			call, ok := v.X.(*ast.CallExpr)
 			if !ok {
 				break
@@ -64,15 +217,163 @@ func (r *Rewriter) rewriteBlockStmts(stmts []ast.Stmt) error {
 			}
 			if rewritten {
 				stmts[i] = stmt
+				r.rewritten = true
 			}
+
+		case *ast.AssignStmt:
+			err := r.rewriteAssign(v)
+			if err != nil {
+				return err
+			}
+
+		case *ast.GoStmt:
+			// go func() {...}()
+			// go func(fn) {...}(func(){...})
+			err := r.rewriteCallExpr(v.Call)
+			if err != nil {
+				return err
+			}
+
+		case *ast.DeferStmt:
+			// defer func() {...}()
+			// defer func(fn) {...}(func(){...})
+			err := r.rewriteCallExpr(v.Call)
+			if err != nil {
+				return err
+			}
+
+		case *ast.ReturnStmt:
+			err := r.rewriteExprs(v.Results)
+			if err != nil {
+				return err
+			}
+
+		case *ast.BlockStmt:
+			err := r.rewriteStmts(v.List)
+			if err != nil {
+				return err
+			}
+
+		case *ast.IfStmt:
+			err := r.rewriteIfStmt(v)
+			if err != nil {
+				return err
+			}
+
+		case *ast.CaseClause:
+			// case func() int {...}() > 100 && func () bool {...}()
+			if len(v.List) > 0 {
+				err := r.rewriteExprs(v.List)
+				if err != nil {
+					return err
+				}
+			}
+			// case func() int {...}() > 100 && func () bool {...}():
+			//     fn := func(){...}
+			//     fn()
+			if len(v.Body) > 0 {
+				err := r.rewriteStmts(v.Body)
+				if err != nil {
+					return err
+				}
+			}
+
+		case *ast.SwitchStmt:
+			if v.Init != nil {
+				err := r.rewriteAssign(v.Init.(*ast.AssignStmt))
+				if err != nil {
+					return err
+				}
+			}
+			if binaryExpr, ok := v.Tag.(*ast.BinaryExpr); ok {
+				err := r.rewriteBinaryExpr(binaryExpr)
+				if err != nil {
+					return err
+				}
+			} else if callExpr, ok := v.Tag.(*ast.CallExpr); ok {
+				err := r.rewriteCallExpr(callExpr)
+				if err != nil {
+					return err
+				}
+			}
+			err := r.rewriteStmts(v.Body.List)
+			if err != nil {
+				return err
+			}
+
+		case *ast.CommClause:
+			// select {
+			// case <- fromCh:
+			// case toCh <- x:
+			// case <- func() chan bool {...}():
+			// }
+			sendOrRecv := v.Comm.(*ast.ExprStmt).X.(*ast.UnaryExpr)
+			if callExpr, ok := sendOrRecv.X.(*ast.CallExpr); ok {
+				err := r.rewriteCallExpr(callExpr)
+				if err != nil {
+					return err
+				}
+			}
+			err := r.rewriteStmts(v.Body)
+			if err != nil {
+				return err
+			}
+
+		case *ast.SelectStmt:
+			if len(v.Body.List) < 1 {
+				continue
+			}
+			err := r.rewriteStmts(v.Body.List)
+			if err != nil {
+				return err
+			}
+
+		case *ast.ForStmt:
+			// for i := func() int {...}(); i < func() int {...}(); i += func() int {...}() {...}
+			if v.Init != nil {
+				err := r.rewriteAssign(v.Init.(*ast.AssignStmt))
+				if err != nil {
+					return err
+				}
+			}
+			if v.Cond != nil {
+				err := r.rewriteBinaryExpr(v.Cond.(*ast.BinaryExpr))
+				if err != nil {
+					return err
+				}
+			}
+			if v.Post != nil {
+				err := r.rewriteAssign(v.Post.(*ast.AssignStmt))
+				if err != nil {
+					return err
+				}
+			}
+			err := r.rewriteStmts(v.Body.List)
+			if err != nil {
+				return err
+			}
+
+		case *ast.RangeStmt:
+			if callExpr, ok := v.X.(*ast.CallExpr); ok {
+				err := r.rewriteCallExpr(callExpr)
+				if err != nil {
+					return err
+				}
+			}
+			err := r.rewriteStmts(v.Body.List)
+			if err != nil {
+				return err
+			}
+
+		default:
+			fmt.Printf("unsupport statement: %T\n", v)
 		}
 	}
 	return nil
 }
 
 func (r *Rewriter) rewriteFuncDecl(fn *ast.FuncDecl) error {
-	fmt.Println("rewrite function", fn.Name.Name)
-	return r.rewriteBlockStmts(fn.Body.List)
+	return r.rewriteStmts(fn.Body.List)
 }
 
 func (r *Rewriter) rewriteFile(path string) error {
@@ -103,7 +404,6 @@ func (r *Rewriter) rewriteFile(path string) error {
 		r.failpointName = packageName
 	}
 
-	fmt.Println(path, r.failpointName)
 	for _, decl := range file.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
 		if !ok {
@@ -114,6 +414,11 @@ func (r *Rewriter) rewriteFile(path string) error {
 		}
 	}
 
+	if !r.rewritten {
+		return nil
+	}
+
+	// Backup origin file and replace content
 	targetPath := path + failpointStashFileSuffix
 	if err := os.Rename(path, targetPath); err != nil {
 		return err
