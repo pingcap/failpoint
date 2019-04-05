@@ -1,8 +1,10 @@
 package failpoint
 
+import "context"
+
 // Marker marks a fail point routine, which will be rewrite to a `if` statement
 // and be triggered by fail point name specified `fpname`
-func Marker(fpname string, fpblock interface{}) {}
+func Marker(fpname string, fpblock func(ctx context.Context, arg *Arg)) {}
 
 // Break will generate a break statement in a loop, e.g:
 // case1:
