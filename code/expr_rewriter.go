@@ -22,24 +22,25 @@ import (
 type exprRewriter func(rewriter *Rewriter, call *ast.CallExpr) (rewritten bool, result ast.Stmt, err error)
 
 var exprRewriters = map[string]exprRewriter{
-	"Marker":   (*Rewriter).rewriteMarker,
+	"Inject":   (*Rewriter).rewriteInject,
+	"Inject2":  (*Rewriter).rewriteInject,
 	"Break":    (*Rewriter).rewriteBreak,
 	"Continue": (*Rewriter).rewriteContinue,
 	"Label":    (*Rewriter).rewriteLabel,
 	"Goto":     (*Rewriter).rewroteGoto,
 }
 
-func (r *Rewriter) rewriteMarker(call *ast.CallExpr) (bool, ast.Stmt, error) {
+func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if len(call.Args) != 2 {
-		return false, nil, fmt.Errorf("failpoint.Marker expect 2 arguments but got %v", len(call.Args))
+		return false, nil, fmt.Errorf("failpoint: expect 2 arguments but got %v", len(call.Args))
 	}
 	fpname, ok := call.Args[0].(*ast.BasicLit)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.Marker first argument expect string literal but got %T", call.Args[0])
+		return false, nil, fmt.Errorf("failpoint: first argument expect string literal but got %T", call.Args[0])
 	}
 	fpbody, ok := call.Args[1].(*ast.FuncLit)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.Marker second argument expect closure but got %T", call.Args[1])
+		return false, nil, fmt.Errorf("failpoint: second argument expect closure but got %T", call.Args[1])
 	}
 	var body = fpbody.Body.List
 	ifBody := &ast.BlockStmt{
@@ -47,29 +48,50 @@ func (r *Rewriter) rewriteMarker(call *ast.CallExpr) (bool, ast.Stmt, error) {
 		List:   body,
 		Rbrace: call.End(),
 	}
-	// closure signature:
-	// func(ctx context.Context, arg *failpoint.Arg) {...}
-	ctx := fpbody.Type.Params.List[0]
-	arg := fpbody.Type.Params.List[1]
-	ctxName := ctx.Names[0]
-	// Pass a nil to `failpoint.IsActive` if ignore context.Context in fail point closure
-	// func(_ context.Context, arg *failpoint.Arg) {...}
-	if ctxName.Name == "_" {
-		ctxName = &ast.Ident{Name: "nil"}
+	var (
+		checkCall *ast.CallExpr
+		cond      = ast.NewIdent("ok")
+		init      *ast.AssignStmt
+	)
+
+	if len(fpbody.Type.Params.List) == 2 {
+		// closure signature:
+		// func(ctx context.Context, val failpoint.Value) {...}
+		ctx := fpbody.Type.Params.List[0]
+		arg := fpbody.Type.Params.List[1]
+		checkCall = &ast.CallExpr{
+			Fun: &ast.SelectorExpr{
+				X:   &ast.Ident{Name: r.failpointName},
+				Sel: &ast.Ident{Name: evalFunction},
+			},
+			Args: []ast.Expr{fpname},
+		}
+		if ctx.Names[0].Name != "_" {
+			checkCall.Args = append(checkCall.Args, ctx.Names[0])
+		}
+		init = &ast.AssignStmt{
+			Lhs: []ast.Expr{cond, arg.Names[0]},
+			Rhs: []ast.Expr{checkCall},
+			Tok: token.DEFINE,
+		}
+	} else {
+		// closure signature:
+		// func(val failpoint.Value) {...}
+		arg := fpbody.Type.Params.List[0]
+		checkCall = &ast.CallExpr{
+			Fun: &ast.SelectorExpr{
+				X:   &ast.Ident{Name: r.failpointName},
+				Sel: &ast.Ident{Name: evalFunction},
+			},
+			Args: []ast.Expr{fpname},
+		}
+		init = &ast.AssignStmt{
+			Lhs: []ast.Expr{cond, arg.Names[0]},
+			Rhs: []ast.Expr{checkCall},
+			Tok: token.DEFINE,
+		}
 	}
-	checkCall := &ast.CallExpr{
-		Fun: &ast.SelectorExpr{
-			X:   &ast.Ident{Name: r.failpointName},
-			Sel: &ast.Ident{Name: isActiveCall},
-		},
-		Args: []ast.Expr{ctxName, fpname},
-	}
-	cond := ast.NewIdent("ok")
-	init := &ast.AssignStmt{
-		Lhs: []ast.Expr{cond, arg.Names[0]},
-		Rhs: []ast.Expr{checkCall},
-		Tok: token.DEFINE,
-	}
+
 	stmt := &ast.IfStmt{
 		If:   call.Pos(),
 		Init: init,

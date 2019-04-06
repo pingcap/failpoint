@@ -15,14 +15,17 @@ package failpoint
 
 import "context"
 
-// Marker marks a fail point routine, which will be rewrite to a `if` statement
+// Inject injects a fail point in call site
+func Inject(fpname string, fpblock func(val Value)) {}
+
+// Inject2 marks a fail point routine, which will be rewrite to a `if` statement
 // and be triggered by fail point name specified `fpname`
-func Marker(fpname string, fpblock func(ctx context.Context, arg *Arg)) {}
+func Inject2(fpname string, fpblock func(ctx context.Context, val Value)) {}
 
 // Break will generate a break statement in a loop, e.g:
 // case1:
 //   for i := 0; i < max; i++ {
-//       failpoint.Marker("break-if-index-equal-2", func() {
+//       failpoint.Inject2("break-if-index-equal-2", func() {
 //           if i == 2 {
 //               failpoint.Break()
 //           }
@@ -34,7 +37,7 @@ func Marker(fpname string, fpblock func(ctx context.Context, arg *Arg)) {}
 //   outer:
 //   for i := 0; i < max; i++ {
 //       for j := 0; j < max / 2; j++ {
-//           failpoint.Marker("break-if-index-i-equal-j", func() {
+//           failpoint.Inject2("break-if-index-i-equal-j", func() {
 //               if i == j {
 //                   failpoint.Break("outer")
 //               }
@@ -55,7 +58,7 @@ func Continue(label ...string) {}
 //   failpoint.Label("outer")
 //   for i := 0; i < max; i++ {
 //       for j := 0; j < max / 2; j++ {
-//           failpoint.Marker("break-if-index-i-equal-j", func() {
+//           failpoint.Inject2("break-if-index-i-equal-j", func() {
 //               if i == j {
 //                   failpoint.Break("outer")
 //               }

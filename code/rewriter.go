@@ -27,7 +27,7 @@ import (
 const (
 	packagePath  = "github.com/pingcap/failpoint"
 	packageName  = "failpoint"
-	isActiveCall = "IsActive"
+	evalFunction = "Eval"
 )
 
 type Rewriter struct {

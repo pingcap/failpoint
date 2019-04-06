@@ -13,23 +13,35 @@
 
 package failpoint
 
-import "context"
+import (
+	"context"
+	"sync"
+)
 
 const failpointCtxKey = "__failpoint_ctx_key__"
 
-type Hook func(ctx context.Context, fpname string) bool
+type (
+	Value     interface{}
+	Hook      func(ctx context.Context, fpname string) bool
+	failpoint struct {
+		mu       sync.RWMutex
+		t        *terms
+		waitChan chan struct{}
+	}
+)
+
+// Pause will pause until the failpoint is disabled.
+func (fp *failpoint) Pause() {
+	<-fp.waitChan
+}
 
 func WithHook(ctx context.Context, hook Hook) context.Context {
 	return context.WithValue(ctx, failpointCtxKey, hook)
 }
 
-type Arg struct {
-}
-
-var activeFPs = map[string]*Arg{}
-
-func IsActive(ctx context.Context, fpname string) (bool, *Arg) {
-	if ctx != nil {
+func Eval(fpname string, ctxs ...context.Context) (bool, Value) {
+	if len(ctxs) > 0 && ctxs[0] != nil {
+		ctx := ctxs[0]
 		hook := ctx.Value(failpointCtxKey)
 		if hook != nil {
 			h, ok := hook.(Hook)
@@ -39,15 +51,18 @@ func IsActive(ctx context.Context, fpname string) (bool, *Arg) {
 		}
 	}
 
-	// TODO: implement check fail point activity algorithm
-	arg, found := activeFPs[fpname]
-	return found, arg
-}
+	failpoints.mu.RLock()
+	defer failpoints.mu.RUnlock()
+	fp, found := failpoints.reg[fpname]
+	if !found {
+		return false, nil
+	}
 
-func (a *Arg) Int() int {
-	return 0
-}
-
-func (a *Arg) String() string {
-	return ""
+	fp.mu.RLock()
+	defer fp.mu.RUnlock()
+	if fp.t == nil {
+		return false, nil
+	}
+	v := fp.t.eval()
+	return true, v
 }
