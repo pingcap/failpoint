@@ -74,6 +74,7 @@ func main() {
 		// to avoid partial rewrite state which maybe make user strange.
 		if errOccurred {
 			restoreFiles(rewritePath)
+			os.Exit(1)
 		}
 	case "disable":
 		restoreFiles(paths)
