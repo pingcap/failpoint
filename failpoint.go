@@ -64,5 +64,8 @@ func Eval(fpname string, ctxs ...context.Context) (bool, Value) {
 		return false, nil
 	}
 	v := fp.t.eval()
+	if v == nil {
+		return false, nil
+	}
 	return true, v
 }

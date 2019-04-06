@@ -102,8 +102,8 @@ func TestPause(t *testing.T) {
 	}
 	start := time.Now()
 	ok, v := Eval("gofail/testPause")
-	if !ok {
-		t.Fatal("expect eval ok")
+	if ok {
+		t.Fatal("expect not active because of pause executed")
 	}
 	if v != nil {
 		t.Fatalf("got %v, excepted %v", v, nil)

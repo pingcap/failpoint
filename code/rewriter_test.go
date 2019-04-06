@@ -1193,7 +1193,7 @@ outer:
 			case j / 9:
 				fallthrough
 			case j / 10:
-				continue outer
+				goto outer
 			default:
 				if ok, val := failpoint.Eval("failpoint-name"); ok {
 					fmt.Println("unit-test", val.(int))

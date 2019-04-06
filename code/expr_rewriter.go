@@ -168,7 +168,7 @@ func (r *Rewriter) rewroteGoto(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	label = strings.Trim(label, "`\"")
 	stmt := &ast.BranchStmt{
 		TokPos: call.Pos(),
-		Tok:    token.CONTINUE,
+		Tok:    token.GOTO,
 		Label:  ast.NewIdent(label),
 	}
 	return true, stmt, nil
