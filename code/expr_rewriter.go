@@ -17,17 +17,19 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"strings"
 )
 
 type exprRewriter func(rewriter *Rewriter, call *ast.CallExpr) (rewritten bool, result ast.Stmt, err error)
 
 var exprRewriters = map[string]exprRewriter{
-	"Inject":   (*Rewriter).rewriteInject,
-	"Inject2":  (*Rewriter).rewriteInject,
-	"Break":    (*Rewriter).rewriteBreak,
-	"Continue": (*Rewriter).rewriteContinue,
-	"Label":    (*Rewriter).rewriteLabel,
-	"Goto":     (*Rewriter).rewroteGoto,
+	"Inject":      (*Rewriter).rewriteInject,
+	"Inject2":     (*Rewriter).rewriteInject,
+	"Break":       (*Rewriter).rewriteBreak,
+	"Continue":    (*Rewriter).rewriteContinue,
+	"Label":       (*Rewriter).rewriteLabel,
+	"Goto":        (*Rewriter).rewroteGoto,
+	"Fallthrough": (*Rewriter).rewroteFallthrough,
 }
 
 func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
@@ -102,17 +104,80 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 }
 
 func (r *Rewriter) rewriteBreak(call *ast.CallExpr) (bool, ast.Stmt, error) {
-	panic("not implement")
+	if count := len(call.Args); count > 1 {
+		return false, nil, fmt.Errorf("failpoint.Break expect 1 or 0 arguments, but got %v", count)
+	}
+	var stmt *ast.BranchStmt
+	if len(call.Args) > 0 {
+		label := call.Args[0].(*ast.BasicLit).Value
+		label = strings.Trim(label, "`\"")
+		stmt = &ast.BranchStmt{
+			TokPos: call.Pos(),
+			Tok:    token.BREAK,
+			Label:  ast.NewIdent(label),
+		}
+	} else {
+		stmt = &ast.BranchStmt{
+			TokPos: call.Pos(),
+			Tok:    token.BREAK,
+		}
+	}
+	return true, stmt, nil
 }
 
 func (r *Rewriter) rewriteContinue(call *ast.CallExpr) (bool, ast.Stmt, error) {
-	panic("not implement")
+	if count := len(call.Args); count > 1 {
+		return false, nil, fmt.Errorf("failpoint.Continue expect 1 or 0 arguments, but got %v", count)
+	}
+	var stmt *ast.BranchStmt
+	if len(call.Args) > 0 {
+		label := call.Args[0].(*ast.BasicLit).Value
+		label = strings.Trim(label, "`\"")
+		stmt = &ast.BranchStmt{
+			TokPos: call.Pos(),
+			Tok:    token.CONTINUE,
+			Label:  ast.NewIdent(label),
+		}
+	} else {
+		stmt = &ast.BranchStmt{
+			TokPos: call.Pos(),
+			Tok:    token.CONTINUE,
+		}
+	}
+	return true, stmt, nil
 }
 
 func (r *Rewriter) rewriteLabel(call *ast.CallExpr) (bool, ast.Stmt, error) {
-	panic("not implement")
+	if count := len(call.Args); count != 1 {
+		return false, nil, fmt.Errorf("failpoint.Label expect 1 arguments, but got %v", count)
+	}
+	label := call.Args[0].(*ast.BasicLit).Value
+	label = strings.Trim(label, "`\"")
+	stmt := &ast.LabeledStmt{
+		Colon: call.Pos(),
+		Label: ast.NewIdent(label),
+	}
+	return true, stmt, nil
 }
 
 func (r *Rewriter) rewroteGoto(call *ast.CallExpr) (bool, ast.Stmt, error) {
-	panic("not implement")
+	if count := len(call.Args); count != 1 {
+		return false, nil, fmt.Errorf("failpoint.Goto expect 1 arguments, but got %v", count)
+	}
+	label := call.Args[0].(*ast.BasicLit).Value
+	label = strings.Trim(label, "`\"")
+	stmt := &ast.BranchStmt{
+		TokPos: call.Pos(),
+		Tok:    token.CONTINUE,
+		Label:  ast.NewIdent(label),
+	}
+	return true, stmt, nil
+}
+
+func (r *Rewriter) rewroteFallthrough(call *ast.CallExpr) (bool, ast.Stmt, error) {
+	stmt := &ast.BranchStmt{
+		TokPos: call.Pos(),
+		Tok:    token.FALLTHROUGH,
+	}
+	return true, stmt, nil
 }

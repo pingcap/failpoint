@@ -205,6 +205,7 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			// failpoint.Break()
 			// failpoint.Break("label")
 			// failpoint.Continue()
+			// failpoint.Fallthrough()
 			// failpoint.Continue("label")
 			// failpoint.Goto("label")
 			// failpoint.Label("label")
@@ -228,10 +229,19 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			if err != nil {
 				return err
 			}
-			if rewritten {
-				stmts[i] = stmt
-				r.rewritten = true
+			if !rewritten {
+				continue
 			}
+
+			if ifStmt, ok := stmt.(*ast.IfStmt); ok {
+				err := r.rewriteIfStmt(ifStmt)
+				if err != nil {
+					return err
+				}
+			}
+
+			stmts[i] = stmt
+			r.rewritten = true
 
 		case *ast.AssignStmt:
 			err := r.rewriteAssign(v)
@@ -356,9 +366,12 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 				}
 			}
 			if v.Post != nil {
-				err := r.rewriteAssign(v.Post.(*ast.AssignStmt))
-				if err != nil {
-					return err
+				assign, ok := v.Post.(*ast.AssignStmt)
+				if ok {
+					err := r.rewriteAssign(assign)
+					if err != nil {
+						return err
+					}
 				}
 			}
 			err := r.rewriteStmts(v.Body.List)
@@ -380,6 +393,15 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 
 		default:
 			fmt.Printf("unsupport statement: %T\n", v)
+		}
+	}
+
+	// Label statement must ahead of for loop
+	for i := 0; i < len(stmts); i++ {
+		stmt := stmts[i]
+		if label, ok := stmt.(*ast.LabeledStmt); ok {
+			label.Stmt = stmts[i+1]
+			stmts[i+1] = &ast.EmptyStmt{}
 		}
 	}
 	return nil

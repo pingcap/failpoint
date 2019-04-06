@@ -298,3 +298,45 @@ func markerRange() {
 		fn()
 	}
 }
+
+func markerControlFlow() {
+	failpoint2.Label("outer")
+	for i := 0; i < 100; i++ {
+		failpoint2.Inject("control-flow", func(_ failpoint2.Value) {
+			if i%10 == 0 {
+				failpoint2.Break("outer")
+			} else {
+				failpoint2.Continue("outer")
+			}
+		})
+	}
+}
+
+func markerControlFlow2() {
+	failpoint2.Label("outer")
+	for i := 0; i < 100; i++ {
+		failpoint2.Label("inner")
+		for j := 0; j < 1000; j++ {
+			switch i {
+			case j / 3:
+				failpoint2.Break("inner")
+			case j / 4:
+				failpoint2.Break("outer")
+			case j / 5:
+				failpoint2.Break()
+			case j / 6:
+				failpoint2.Continue("inner")
+			case j / 7:
+				failpoint2.Continue("outer")
+			case j / 8:
+				failpoint2.Continue()
+			case j / 9:
+				failpoint2.Fallthrough()
+			case j / 10:
+				failpoint2.Goto("outer")
+			default:
+				failpoint2.Goto("inner")
+			}
+		}
+	}
+}
