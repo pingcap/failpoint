@@ -13,14 +13,9 @@
 
 package failpoint
 
-import "context"
-
-// Inject injects a fail point in call site
-func Inject(fpname string, fpblock func(val Value)) {}
-
-// Inject2 marks a fail point routine, which will be rewrite to a `if` statement
+// Inject marks a fail point routine, which will be rewrite to a `if` statement
 // and be triggered by fail point name specified `fpname`
-func Inject2(fpname string, fpblock func(ctx context.Context, val Value)) {}
+func Inject(fpname string, fpbody interface{}) {}
 
 // Break will generate a break statement in a loop, e.g:
 // case1:

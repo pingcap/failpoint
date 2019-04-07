@@ -24,7 +24,6 @@ type exprRewriter func(rewriter *Rewriter, call *ast.CallExpr) (rewritten bool, 
 
 var exprRewriters = map[string]exprRewriter{
 	"Inject":      (*Rewriter).rewriteInject,
-	"Inject2":     (*Rewriter).rewriteInject,
 	"Break":       (*Rewriter).rewriteBreak,
 	"Continue":    (*Rewriter).rewriteContinue,
 	"Label":       (*Rewriter).rewriteLabel,
@@ -44,6 +43,15 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if !ok {
 		return false, nil, fmt.Errorf("failpoint: second argument expect closure but got %T", call.Args[1])
 	}
+
+	if len(fpbody.Type.Params.List) > 2 {
+		var types []string
+		for _, field := range fpbody.Type.Params.List {
+			types = append(types, fmt.Sprintf("%T", field.Type))
+		}
+		return false, nil, fmt.Errorf("failpoint: invalid signature(%s)", strings.Join(types, ", "))
+	}
+
 	var body = fpbody.Body.List
 	ifBody := &ast.BlockStmt{
 		Lbrace: call.Pos(),
@@ -59,8 +67,26 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if len(fpbody.Type.Params.List) == 2 {
 		// closure signature:
 		// func(ctx context.Context, val failpoint.Value) {...}
-		ctx := fpbody.Type.Params.List[0]
-		arg := fpbody.Type.Params.List[1]
+		var ctx, arg *ast.Field
+		for _, field := range fpbody.Type.Params.List {
+			selector, ok := field.Type.(*ast.SelectorExpr)
+			if !ok {
+				return false, nil, fmt.Errorf("failpoint: invalid signature(%T, %T)",
+					fpbody.Type.Params.List[0].Type, fpbody.Type.Params.List[1].Type)
+			}
+			switch {
+			case selector.Sel.Name == "Context":
+				ctx = field
+			case selector.Sel.Name == "Value" && selector.X.(*ast.Ident).Name == r.failpointName:
+				arg = field
+			default:
+				return false, nil, fmt.Errorf("failpoint: invalid signature with type: %T", field.Type)
+			}
+		}
+		if ctx == nil || arg == nil {
+			return false, nil, fmt.Errorf("failpoint: invalid signature(%T, %T)",
+				fpbody.Type.Params.List[0].Type, fpbody.Type.Params.List[1].Type)
+		}
 		checkCall = &ast.CallExpr{
 			Fun: &ast.SelectorExpr{
 				X:   &ast.Ident{Name: r.failpointName},
@@ -80,6 +106,11 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 		// closure signature:
 		// func(val failpoint.Value) {...}
 		arg := fpbody.Type.Params.List[0]
+		selector, ok := arg.Type.(*ast.SelectorExpr)
+		if !ok || selector.Sel.Name != "Value" || selector.X.(*ast.Ident).Name != r.failpointName {
+			return false, nil, fmt.Errorf("failpoint: invalid signature with type: %T", arg.Type)
+		}
+
 		checkCall = &ast.CallExpr{
 			Fun: &ast.SelectorExpr{
 				X:   &ast.Ident{Name: r.failpointName},

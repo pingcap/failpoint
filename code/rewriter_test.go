@@ -123,7 +123,7 @@ import (
 var ctx = context.Background()
 
 func unittest() {
-	failpoint.Inject2("failpoint-name", func(ctx context.Context, val failpoint.Value) {
+	failpoint.Inject("failpoint-name", func(ctx context.Context, val failpoint.Value) {
 		fmt.Println("unit-test", val)
 	})
 }
@@ -137,6 +137,48 @@ import (
 
 	"github.com/pingcap/failpoint"
 )
+
+var ctx = context.Background()
+
+func unittest() {
+	if ok, val := failpoint.Eval("failpoint-name", ctx); ok {
+		fmt.Println("unit-test", val)
+	}
+}
+`,
+		},
+
+		{
+			filepath: "basic-test-with-ctx-2.go",
+			original: `
+package rewriter_test
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+var ctx = context.Background()
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(val failpoint.Value, ctx context.Context) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+var ctx = context.Background()
 
 func unittest() {
 	if ok, val := failpoint.Eval("failpoint-name", ctx); ok {
@@ -158,10 +200,44 @@ import (
 	"github.com/pingcap/failpoint"
 )
 
-var ctx = context.Background()
+func unittest() {
+	failpoint.Inject("failpoint-name", func(_ context.Context, val failpoint.Value) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
 
 func unittest() {
-	failpoint.Inject2("failpoint-name", func(_ context.Context, val failpoint.Value) {
+	if ok, val := failpoint.Eval("failpoint-name"); ok {
+		fmt.Println("unit-test", val)
+	}
+}
+`,
+		},
+
+		{
+			filepath: "basic-test-with-ctx-ignore-2.go",
+			original: `
+package rewriter_test
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(val failpoint.Value, _ context.Context) {
 		fmt.Println("unit-test", val)
 	})
 }
@@ -196,10 +272,8 @@ import (
 	"github.com/pingcap/failpoint"
 )
 
-var ctx = context.Background()
-
 func unittest() {
-	failpoint.Inject2("failpoint-name", func(_ context.Context, _ failpoint.Value) {
+	failpoint.Inject("failpoint-name", func(_ context.Context, _ failpoint.Value) {
 		fmt.Println("unit-test")
 	})
 }
@@ -1198,9 +1272,9 @@ outer:
 				if ok, val := failpoint.Eval("failpoint-name"); ok {
 					fmt.Println("unit-test", val.(int))
 					if val == j/11 {
-						continue inner
+						goto inner
 					} else {
-						continue outer
+						goto outer
 					}
 				}
 			}
@@ -1236,4 +1310,144 @@ outer:
 		c.Assert(err, Equals, nil)
 		c.Assert(strings.TrimSpace(cs.expected), Equals, strings.TrimSpace(string(content)))
 	}
+}
+
+func (s *rewriterSuite) TestRewriteBad(c *C) {
+	var cases = []struct {
+		filepath string
+		original string
+	}{
+		// bad cases
+		{
+			filepath: "bad-basic-test.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(val int) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+		},
+	}
+
+	// Create temp files
+	err := os.MkdirAll(s.path, os.ModePerm)
+	c.Assert(err, Equals, nil)
+	for _, cs := range cases {
+		original := filepath.Join(s.path, cs.filepath)
+		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
+		c.Assert(err, Equals, nil)
+	}
+
+	// Clean all temp files
+	defer func() {
+		err := os.RemoveAll(s.path)
+		c.Assert(err, Equals, nil)
+	}()
+
+	rewriter := code.NewRewriter(s.path)
+	err = rewriter.Rewrite()
+	c.Assert(err.Error(), Matches, "failpoint: invalid signature with type.*")
+}
+
+func (s *rewriterSuite) TestRewriteBad2(c *C) {
+	var cases = []struct {
+		filepath string
+		original string
+	}{
+		// bad cases
+		{
+			filepath: "bad-basic-test.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(ctx context.Context, val int) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+		},
+	}
+
+	// Create temp files
+	err := os.MkdirAll(s.path, os.ModePerm)
+	c.Assert(err, Equals, nil)
+	for _, cs := range cases {
+		original := filepath.Join(s.path, cs.filepath)
+		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
+		c.Assert(err, Equals, nil)
+	}
+
+	// Clean all temp files
+	defer func() {
+		err := os.RemoveAll(s.path)
+		c.Assert(err, Equals, nil)
+	}()
+
+	rewriter := code.NewRewriter(s.path)
+	err = rewriter.Rewrite()
+	c.Assert(err, NotNil)
+	c.Assert(err.Error(), Matches, "failpoint: invalid signature.*")
+}
+
+func (s *rewriterSuite) TestRewriteBad3(c *C) {
+	var cases = []struct {
+		filepath string
+		original string
+	}{
+		// bad cases
+		{
+			filepath: "bad-basic-test.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(ctx context.Context, val int, val2 string) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+		},
+	}
+
+	// Create temp files
+	err := os.MkdirAll(s.path, os.ModePerm)
+	c.Assert(err, Equals, nil)
+	for _, cs := range cases {
+		original := filepath.Join(s.path, cs.filepath)
+		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
+		c.Assert(err, Equals, nil)
+	}
+
+	// Clean all temp files
+	defer func() {
+		err := os.RemoveAll(s.path)
+		c.Assert(err, Equals, nil)
+	}()
+
+	rewriter := code.NewRewriter(s.path)
+	err = rewriter.Rewrite()
+	c.Assert(err, NotNil)
+	c.Assert(err.Error(), Matches, "failpoint: invalid signature.*")
 }
