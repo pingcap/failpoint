@@ -15,12 +15,19 @@ package failpoint
 
 // Inject marks a fail point routine, which will be rewrite to a `if` statement
 // and be triggered by fail point name specified `fpname`
+// Note: The fail point closure  parameter type can only be `context.Context` or `failpoint.Value`
+// e.g:
+// failpoint.Inject("fail-point-name", func() (...){}
+// failpoint.Inject("fail-point-name", func(val failpoint.Value) (...){}
+// failpoint.Inject("fail-point-name", func(ctx context.Context) (...){}
+// failpoint.Inject("fail-point-name", func(ctx context.Context, val failpoint.Value) (...){}
+// failpoint.Inject("fail-point-name", func(val failpoint.Value, ctx context.Context) (...){}
 func Inject(fpname string, fpbody interface{}) {}
 
 // Break will generate a break statement in a loop, e.g:
 // case1:
 //   for i := 0; i < max; i++ {
-//       failpoint.Inject2("break-if-index-equal-2", func() {
+//       failpoint.Inject("break-if-index-equal-2", func() {
 //           if i == 2 {
 //               failpoint.Break()
 //           }
@@ -32,7 +39,7 @@ func Inject(fpname string, fpbody interface{}) {}
 //   outer:
 //   for i := 0; i < max; i++ {
 //       for j := 0; j < max / 2; j++ {
-//           failpoint.Inject2("break-if-index-i-equal-j", func() {
+//           failpoint.Inject("break-if-index-i-equal-j", func() {
 //               if i == j {
 //                   failpoint.Break("outer")
 //               }
@@ -55,7 +62,7 @@ func Fallthrough() {}
 //   failpoint.Label("outer")
 //   for i := 0; i < max; i++ {
 //       for j := 0; j < max / 2; j++ {
-//           failpoint.Inject2("break-if-index-i-equal-j", func() {
+//           failpoint.Inject("break-if-index-i-equal-j", func() {
 //               if i == j {
 //                   failpoint.Break("outer")
 //               }
