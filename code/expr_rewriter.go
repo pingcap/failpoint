@@ -105,10 +105,17 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	} else {
 		// closure signature:
 		// func(val failpoint.Value) {...}
-		arg := fpbody.Type.Params.List[0]
-		selector, ok := arg.Type.(*ast.SelectorExpr)
-		if !ok || selector.Sel.Name != "Value" || selector.X.(*ast.Ident).Name != r.failpointName {
-			return false, nil, fmt.Errorf("failpoint: invalid signature with type: %T", arg.Type)
+		// func() {...}
+		var argName *ast.Ident
+		if len(fpbody.Type.Params.List) > 0 {
+			arg := fpbody.Type.Params.List[0]
+			selector, ok := arg.Type.(*ast.SelectorExpr)
+			if !ok || selector.Sel.Name != "Value" || selector.X.(*ast.Ident).Name != r.failpointName {
+				return false, nil, fmt.Errorf("failpoint: invalid signature with type: %T", arg.Type)
+			}
+			argName = arg.Names[0]
+		} else {
+			argName = ast.NewIdent("_")
 		}
 
 		checkCall = &ast.CallExpr{
@@ -119,7 +126,7 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 			Args: []ast.Expr{fpname},
 		}
 		init = &ast.AssignStmt{
-			Lhs: []ast.Expr{cond, arg.Names[0]},
+			Lhs: []ast.Expr{cond, argName},
 			Rhs: []ast.Expr{checkCall},
 			Tok: token.DEFINE,
 		}

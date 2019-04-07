@@ -75,6 +75,40 @@ func unittest() {
 		},
 
 		{
+			filepath: "basic-test2.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func() {
+		fmt.Println("unit-test")
+	})
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	if ok, _ := failpoint.Eval("failpoint-name"); ok {
+		fmt.Println("unit-test")
+	}
+}
+`,
+		},
+
+		{
 			filepath: "basic-test-ignore-val.go",
 			original: `
 package rewriter_test
