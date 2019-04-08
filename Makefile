@@ -49,6 +49,7 @@ cover:
 			-ignore='.git,vendor,LICENSES' \
 			-concurrency=4
 	
+upload-cover:	SHELL:=/bin/bash
 upload-cover:
 	mv overalls.coverprofile coverage.txt
 	bash <(curl -s https://codecov.io/bash)
