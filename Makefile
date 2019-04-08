@@ -13,7 +13,7 @@ export PATH := $(path_to_add):$(PATH)
 
 GO        := GO111MODULE=on go
 GOBUILD   := GO111MODULE=on CGO_ENABLED=0 $(GO) build
-GOTEST    := GO111MODULE=on CGO_ENABLED=1 $(GO) test -p 3
+GOTEST    := GO111MODULE=on CGO_ENABLED=1 $(GO) test -p 4
 OVERALLS  := CGO_ENABLED=1 GO111MODULE=on overalls
 
 ARCH      := "`uname -s`"
@@ -40,7 +40,7 @@ checksuccess:
 	fi
 
 test:
-	$(GOTEST) -ldflags -v ./...
+	$(GOTEST) -v ./...
 
 cover:
 	$(GO) get github.com/go-playground/overalls
