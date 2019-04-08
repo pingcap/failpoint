@@ -6,7 +6,7 @@ go:
   - "1.12.x"
 
 env:
-    - TEST_SUITE=""
+    - TEST_SUITE="build"
     - TEST_SUITE="test"
     - TEST_SUITE="cover upload-cover"
 
