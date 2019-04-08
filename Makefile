@@ -1,6 +1,6 @@
 ### Makefile for failpoint-ctl
 
-LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.ReleaseVersion=$(shell git describe --tags --dirty="-dev")"
+LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.ReleaseVersion=$(shell git describe --tags --dirty="-dev" --always)"
 LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.BuildTS=$(shell date -u '+%Y-%m-%d %I:%M:%S')"
 LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.GitHash=$(shell git rev-parse HEAD)"
 LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.GitBranch=$(shell git rev-parse --abbrev-ref HEAD)"
@@ -11,9 +11,10 @@ FAILPOINT_CTL_BIN := bin/failpoint-ctl
 path_to_add := $(addsuffix /bin,$(subst :,/bin:,$(GOPATH)))
 export PATH := $(path_to_add):$(PATH)
 
-GO        := go
+GO        := GO111MODULE=on go
 GOBUILD   := GO111MODULE=on CGO_ENABLED=0 $(GO) build
-GOTEST    := GO111MODULE=on CGO_ENABLED=1 $(GO) test -p 3
+GOTEST    := GO111MODULE=on CGO_ENABLED=1 $(GO) test -p 4
+OVERALLS  := CGO_ENABLED=1 GO111MODULE=on overalls
 
 ARCH      := "`uname -s`"
 LINUX     := "Linux"
@@ -25,7 +26,7 @@ ifeq ("$(WITH_RACE)", "1")
 	GOBUILD   = GOPATH=$(GOPATH) CGO_ENABLED=1 $(GO) build
 endif
 
-.PHONY: build checksuccess
+.PHONY: build checksuccess test cover upload-cover
 
 default: build checksuccess
 
@@ -37,3 +38,18 @@ checksuccess:
 	then \
 		echo "failpoint-ctl build successfully :-) !" ; \
 	fi
+
+test:
+	$(GOTEST) -v ./...
+
+cover:
+	$(GO) get github.com/go-playground/overalls
+	$(OVERALLS) -project=github.com/pingcap/failpoint \
+	    -covermode=count \
+			-ignore='.git,vendor,LICENSES' \
+			-concurrency=4
+	
+upload-cover:	SHELL:=/bin/bash
+upload-cover:
+	mv overalls.coverprofile coverage.txt
+	bash <(curl -s https://codecov.io/bash)
