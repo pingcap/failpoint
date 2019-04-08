@@ -8,14 +8,14 @@ go:
 env:
     - TEST_SUITE=""
     - TEST_SUITE="test"
-    - TEST_SUITE="cover"
+    - TEST_SUITE="cover upload-cover"
 
 # Run coverage tests.
 matrix:
   fast_finish: true
   allow_failures:
     - go: "1.12.x"
-      env: TEST_SUITE="cover"
+      env: TEST_SUITE="cover upload-cover"
 
 script:
   - make $TEST_SUITE

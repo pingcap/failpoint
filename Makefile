@@ -26,7 +26,7 @@ ifeq ("$(WITH_RACE)", "1")
 	GOBUILD   = GOPATH=$(GOPATH) CGO_ENABLED=1 $(GO) build
 endif
 
-.PHONY: build checksuccess test cover
+.PHONY: build checksuccess test cover upload-cover
 
 default: build checksuccess
 
@@ -49,3 +49,6 @@ cover:
 			-ignore='.git,vendor,LICENSES' \
 			-concurrency=4
 	
+upload-cover:
+	mv overalls.coverprofile coverage.txt
+	bash <(curl -s https://codecov.io/bash)
