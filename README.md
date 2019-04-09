@@ -41,7 +41,7 @@ An implementation of [failpoints][failpoint] for Golang.
 
     - It is just an empty function
 
-        - To hint rewriter to rewrite with equality statement
+        - To hint the rewriter to rewrite with an equality statement
         - Receive some parameters as the rewrite rule
         - It will be inline in compile time and emit nothing to binary (zero cost)
         - The closure can access external variables in valid syntax which called capture, and
