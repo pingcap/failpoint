@@ -42,14 +42,14 @@ An implementation of [failpoints][failpoint] for Golang.
     - It is just an empty function
 
         - To hint the rewriter to rewrite with an equality statement
-        - Receive some parameters as the rewrite rule
-        - It will be inline in compile time and emit nothing to binary (zero cost)
-        - The closure can access external variables in valid syntax which called capture, and
-        the converted IF statement is still legal because of all of captured - variables
+        - To receive some parameters as the rewrite rule
+        - It will be inline in the compiling time and emit nothing to binary (zero cost)
+        - The closure can access external variables in a valid syntax that is called capture, and
+        the converted IF statement is still legal because all of captured-variables
         become an outer scope variable access. That’s awesome
 
     - It is easy to write/read 
-    - Introduce a compiler check for failpoints which cannot compile in regular mode if failpoint code is invalid
+    - Introduce a compiler check for failpoints which cannot compile in the regular mode if failpoint code is invalid
 
 - Marker funtion list
 
@@ -61,9 +61,9 @@ An implementation of [failpoints][failpoint] for Golang.
     - `func Fallthrough() {}`
     - `func Label(label string) {}`
 
-## How to inject a failpoint to you program
+## How to inject a failpoint to your program
 
-You can call `failpoint.Inject` to inject a failpoint to the call site, which `failpoint-name` is
+You can call `failpoint.Inject` to inject a failpoint to the call site, where `failpoint-name` is
 used to trigger the failpoint and `failpoint-closure` will be expanded as the body of the IF statement.
 
 ```go
@@ -105,9 +105,9 @@ if ok, _ := failpoint.Eval("failpoint-name"); ok {
 }
 ```
 
-Also, the failpoint closure can be a function which take `context.Context`. You can
-do some customized things with `context.Context` like control whether a failpoint is
-active in parallel tests or other cases. e.g.
+Also, the failpoint closure can be a function which takes `context.Context`. You can
+do some customized things with `context.Context` like controlling whether a failpoint is
+active in parallel tests or other cases. For example,
 
 ```go
 failpoint.Inject("failpoint-name", func(ctx context.Context, val failpoint.Value) {
@@ -153,7 +153,7 @@ func (s *dmlSuite) TestCRUDParallel() {
         "on-duplicate-fp": {},
     }
     ictx := failpoint.WithHook(context.Backgroud(), func(ctx context.Context, fpname string) bool {
-        _, found := insertFailpoints[fpname] // Only enable some faipoints
+        _, found := insertFailpoints[fpname] // Only enables some failpoints.
         return found
     })
     deleteFailpoints = map[string]struct{} {
@@ -161,17 +161,17 @@ func (s *dmlSuite) TestCRUDParallel() {
         "fetch-tso-timeout": {},
     }
     dctx := failpoint.WithHook(context.Backgroud(), func(ctx context.Context, fpname string) bool {
-        _, found := deleteFailpoints[fpname] // Only disable failpoints 
+        _, found := deleteFailpoints[fpname] // Only disables failpoints. 
         return !found
     })
-    // ... other dml parallel test cases
+    // ... other DML parallel test cases.
     s.RunParallel(buildSelectTests(sctx))
     s.RunParallel(buildInsertTests(ictx))
     s.RunParallel(buildDeleteTests(dctx))
 }
 ```
 
-If you use failpoint in loop context, maybe you would use ohter marker functions
+If you use a failpoint in the loop context, maybe you will use other marker functions.
 
 ```go
 failpoint.Label("outer")
@@ -201,7 +201,7 @@ for i := 0; i < 100; i++ {
 }
 ```
 
-Which will generate belowing code:
+The above code block will generate the following code:
 
 ```go
 outer:
@@ -231,42 +231,42 @@ outer:
     }
 ```
 
-You may confused that why don't  we use `label` `break` `continue` `fallthrough` directly
-instead of to use failpoint marker functions. 
+You may doubt why we do not use `label`, break`, `continue`, and `fallthrough` directly
+instead of using failpoint marker functions. 
 
 - Unused label will occurred compiler error in compile phrase if a label is just used in
 failpoint closure.
-- The `break` `continue` can only be used in loop context, it is not legal golang code 
-if we use it in closure directly.
+- `break` and `continue` can only be used in the loop context, which is not legal in the Golang code 
+if we use them in closure directly.
 
 ### Some complicated failpoints demo
 
-- Inject failpoint to IF INITIAL statement or CONDITIONAL expression
+- Inject a failpoint to the IF INITIAL statement or CONDITIONAL expression
 
-```go
-if a, b := func() {
-    failpoint.Inject("failpoint-name", func(val failpoint.Value) {
-        fmt.Println("unit-test", val)
-    })
-}, func() int { return rand.Intn(200) }(); b > func() int {
-    failpoint.Inject("failpoint-name", func(val failpoint.Value) int {
-        return val.(int)
-    })
-    return rand.Intn(3000)
-}() && b < func() int {
-    failpoint.Inject("failpoint-name-2", func(val failpoint.Value) {
-        return rand.Intn(val.(int))
-    })
-    return rand.Intn(6000)
-}() {
-    a()
-    failpoint.Inject("failpoint-name-3", func(val failpoint.Value) {
-        fmt.Println("unit-test", val)
-    })
-}
-```
+    ```go
+    if a, b := func() {
+        failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+            fmt.Println("unit-test", val)
+        })
+    }, func() int { return rand.Intn(200) }(); b > func() int {
+        failpoint.Inject("failpoint-name", func(val failpoint.Value) int {
+            return val.(int)
+        })
+        return rand.Intn(3000)
+    }() && b < func() int {
+        failpoint.Inject("failpoint-name-2", func(val failpoint.Value) {
+            return rand.Intn(val.(int))
+        })
+        return rand.Intn(6000)
+    }() {
+        a()
+        failpoint.Inject("failpoint-name-3", func(val failpoint.Value) {
+            fmt.Println("unit-test", val)
+        })
+    }
+    ```
 
-Will generate something like this:
+    The above bode block will generate something like this:
 
 ```go
 if a, b := func() {
@@ -291,7 +291,7 @@ if a, b := func() {
 }
 ```
 
-- Inject failpoint to the SELECT statement to make it block one case if failpoint is active
+- Inject a failpoint to the SELECT statement to make it block one case if the failpoint is active
 
 ```go
 func (s *StoreService) ExecuteStoreTask() {
@@ -313,7 +313,7 @@ func (s *StoreService) ExecuteStoreTask() {
 }
 ```
 
-Will generate something like this:
+    The above code block will generate something like this:
 
 ```go
 func (s *StoreService) ExecuteStoreTask() {
@@ -361,7 +361,7 @@ default:
 }
 ```
 
-Will generate something like this:
+    The above code block will generate something like this:
 
 ```go
 switch opType := operator.Type(); {
@@ -387,7 +387,7 @@ default:
 }
 ```
 
-- More complicated failpoint
+- More complicated failpoints
 
     - There are more complicated failpoint sites that can be injected to
         - for the loop INITIAL statement, CONDITIONAL expression and POST statement
@@ -399,8 +399,8 @@ default:
 ## Implementation details
 
 - Define a group of marker functions
-- Parse imports and prune a source file which does not import failpoint
+- Parse imports and prune a source file which does not import a failpoint
 - Traverse AST to find marker function calls
-- Marker function call will be rewritten with an IF statement, which calls failpoint.Eval to determine whether a failpoint is active and executes failpoint code if the failpoint is enabled
+- Marker function calls will be rewritten with an IF statement, which calls failpoint.Eval to determine whether a failpoint is active and executes failpoint code if the failpoint is enabled
 
 ![rewrite-demo](./media/rewrite-demo.png)
