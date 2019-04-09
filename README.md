@@ -19,7 +19,7 @@ An implementation of [failpoints][failpoint] for Golang.
     - Failpoint code will not appear in the final binary
 
 - Failpoint routine is easy to write/read and checked by a compiler
-- Generated code by failpoint defination is easy to read
+- Generated code by failpoint definition is easy to read
 - Will Keep the line number the same (for easy debug)
 - Support parallel tests with context.Context
 
