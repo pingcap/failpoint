@@ -18,7 +18,7 @@ An implementation of [failpoints][failpoint] for Golang.
     - Will not cause regular code performance regression
     - Failpoint code will not appear in the final binary
 
-- Failpoint routine is easy to write/read and checked by a compiler
+- Failpoint routine is easy to write/read and should be checked by a compiler
 - Generated code by failpoint definition is easy to read
 - Will keep the line number the same (for easy debug)
 - Support parallel tests with context.Context
@@ -63,181 +63,191 @@ An implementation of [failpoints][failpoint] for Golang.
 
 ## How to inject a failpoint to your program
 
-You can call `failpoint.Inject` to inject a failpoint to the call site, where `failpoint-name` is
+- You can call `failpoint.Inject` to inject a failpoint to the call site, where `failpoint-name` is
 used to trigger the failpoint and `failpoint-closure` will be expanded as the body of the IF statement.
 
-```go
-failpoint.Inject("failpoint-name", func(val failpoint.Value) {
-    fmt.Println("unit-test", val)
-})
-```
+    ```go
+    failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+        fmt.Println("unit-test", val)
+    })
+    ```
 
-The converted code looks like:
+    The converted code looks like:
 
-```go
-if ok, val := failpoint.Eval("failpoint-name"); ok {
-    fmt.Println("unit-test", val)
-}
-```
+    ```go
+    if ok, val := failpoint.Eval("failpoint-name"); ok {
+        fmt.Println("unit-test", val)
+    }
+    ```
 
-The `failpoint.Value` is the value that pass by `failpoint.Enable("failpoint-name", "return(5)")`
+- The `failpoint.Value` is the value that pass by `failpoint.Enable("failpoint-name", "return(5)")`
 which can be ignored.
 
-```go
-failpoint.Inject("failpoint-name", func(_ failpoint.Value) {
-    fmt.Println("unit-test")
-})
-```
+    ```go
+    failpoint.Inject("failpoint-name", func(_ failpoint.Value) {
+        fmt.Println("unit-test")
+    })
+    ```
 
-OR
+    OR
 
-```go
-failpoint.Inject("failpoint-name", func() {
-    fmt.Println("unit-test")
-})
-```
+    ```go
+    failpoint.Inject("failpoint-name", func() {
+        fmt.Println("unit-test")
+    })
+    ```
 
-And the converted code looks like:
+    And the converted code looks like:
 
-```go
-if ok, _ := failpoint.Eval("failpoint-name"); ok {
-    fmt.Println("unit-test")
-}
-```
+    ```go
+    if ok, _ := failpoint.Eval("failpoint-name"); ok {
+        fmt.Println("unit-test")
+    }
+    ```
 
-Also, the failpoint closure can be a function which takes `context.Context`. You can
+- Also, the failpoint closure can be a function which takes `context.Context`. You can
 do some customized things with `context.Context` like controlling whether a failpoint is
 active in parallel tests or other cases. For example,
 
-```go
-failpoint.Inject("failpoint-name", func(ctx context.Context, val failpoint.Value) {
-	fmt.Println("unit-test", val)
-})
-```
-
-The converted code looks like:
-
-```go
-if ok, val := failpoint.Eval("failpoint-name", ctx); ok {
-	fmt.Println("unit-test", val)
-}
-```
-
-Of course you can ignore `context.Context` even if no meaningful because of it will generate the
-same code as no `context.Context` parameter. e.g.
-
-```go
-failpoint.Inject("failpoint-name", func(_ context.Context, val failpoint.Value) {
-	fmt.Println("unit-test", val)
-})
-```
-
-Becomes
-
-```go
-if ok, val := failpoint.Eval("failpoint-name"); ok {
-	fmt.Println("unit-test", val)
-}
-```
-
-You can control a failpoint by failpoint.WithHook
-
-```go
-func (s *dmlSuite) TestCRUDParallel() {
-    sctx := failpoint.WithHook(context.Backgroud(), func(ctx context.Context, fpname string) bool {
-        return ctx.Value(fpname) != nil // Determine by ctx key
+    ```go
+    failpoint.Inject("failpoint-name", func(ctx context.Context, val failpoint.Value) {
+        fmt.Println("unit-test", val)
     })
-    insertFailpoints = map[string]struct{} {
-        "insert-record-fp": {},
-        "insert-index-fp": {},
-        "on-duplicate-fp": {},
+    ```
+
+    The converted code looks like:
+
+    ```go
+    if ok, val := failpoint.Eval("failpoint-name", ctx); ok {
+        fmt.Println("unit-test", val)
     }
-    ictx := failpoint.WithHook(context.Backgroud(), func(ctx context.Context, fpname string) bool {
-        _, found := insertFailpoints[fpname] // Only enables some failpoints.
-        return found
+    ```
+
+- You can ignore `context.Context`, and will generate the same code as above none-context version. For examble,
+
+    ```go
+    failpoint.Inject("failpoint-name", func(_ context.Context, val failpoint.Value) {
+        fmt.Println("unit-test", val)
     })
-    deleteFailpoints = map[string]struct{} {
-        "tikv-is-busy-fp": {},
-        "fetch-tso-timeout": {},
+    ```
+
+    Becomes
+
+    ```go
+    if ok, val := failpoint.Eval("failpoint-name"); ok {
+        fmt.Println("unit-test", val)
     }
-    dctx := failpoint.WithHook(context.Backgroud(), func(ctx context.Context, fpname string) bool {
-        _, found := deleteFailpoints[fpname] // Only disables failpoints. 
-        return !found
-    })
-    // ... other DML parallel test cases.
-    s.RunParallel(buildSelectTests(sctx))
-    s.RunParallel(buildInsertTests(ictx))
-    s.RunParallel(buildDeleteTests(dctx))
-}
-```
+    ```
 
-If you use a failpoint in the loop context, maybe you will use other marker functions.
+- You can control a failpoint by failpoint.WithHook
 
-```go
-failpoint.Label("outer")
-for i := 0; i < 100; i++ {
-    inner:
-        for j := 0; j < 1000; j++ {
-            switch rand.Intn(j) + i {
-            case j / 5:
-                failpoint.Break()
-            case j / 7:
-                failpoint.Continue("outer")
-            case j / 9:
-                failpoint.Fallthrough()
-            case j / 10:
-                failpoint.Goto("outer")
-            default:
-                failpoint.Inject("failpoint-name", func(val failpoint.Value) {
-                    fmt.Println("unit-test", val.(int))
-                    if val == j/11 {
-                        failpoint.Break("inner")
-                    } else {
-                        failpoint.Goto("outer")
-                    }
-                })
+    ```go
+    func (s *dmlSuite) TestCRUDParallel() {
+        sctx := failpoint.WithHook(context.Backgroud(), func(ctx context.Context, fpname string) bool {
+            return ctx.Value(fpname) != nil // Determine by ctx key
+        })
+        insertFailpoints = map[string]struct{} {
+            "insert-record-fp": {},
+            "insert-index-fp": {},
+            "on-duplicate-fp": {},
+        }
+        ictx := failpoint.WithHook(context.Backgroud(), func(ctx context.Context, fpname string) bool {
+            _, found := insertFailpoints[fpname] // Only enables some failpoints.
+            return found
+        })
+        deleteFailpoints = map[string]struct{} {
+            "tikv-is-busy-fp": {},
+            "fetch-tso-timeout": {},
+        }
+        dctx := failpoint.WithHook(context.Backgroud(), func(ctx context.Context, fpname string) bool {
+            _, found := deleteFailpoints[fpname] // Only disables failpoints. 
+            return !found
+        })
+        // ... other DML parallel test cases.
+        s.RunParallel(buildSelectTests(sctx))
+        s.RunParallel(buildInsertTests(ictx))
+        s.RunParallel(buildDeleteTests(dctx))
+    }
+    ```
+
+- If you use a failpoint in the loop context, maybe you will use other marker functions.
+
+    ```go
+    failpoint.Label("outer")
+    for i := 0; i < 100; i++ {
+        inner:
+            for j := 0; j < 1000; j++ {
+                switch rand.Intn(j) + i {
+                case j / 5:
+                    failpoint.Break()
+                case j / 7:
+                    failpoint.Continue("outer")
+                case j / 9:
+                    failpoint.Fallthrough()
+                case j / 10:
+                    failpoint.Goto("outer")
+                default:
+                    failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+                        fmt.Println("unit-test", val.(int))
+                        if val == j/11 {
+                            failpoint.Break("inner")
+                        } else {
+                            failpoint.Goto("outer")
+                        }
+                    })
+            }
         }
     }
-}
-```
+    ```
 
-The above code block will generate the following code:
+    The above code block will generate the following code:
 
-```go
-outer:
-    for i := 0; i < 100; i++ {
-    inner:
-        for j := 0; j < 1000; j++ {
-            switch rand.Intn(j) + i {
-            case j / 5:
-                break
-            case j / 7:
-                continue outer
-            case j / 9:
-                fallthrough
-            case j / 10:
-                goto outer
-            default:
-                if ok, val := failpoint.Eval("failpoint-name"); ok {
-                    fmt.Println("unit-test", val.(int))
-                    if val == j/11 {
-                        break inner
-                    } else {
-                        goto outer
+    ```go
+    outer:
+        for i := 0; i < 100; i++ {
+        inner:
+            for j := 0; j < 1000; j++ {
+                switch rand.Intn(j) + i {
+                case j / 5:
+                    break
+                case j / 7:
+                    continue outer
+                case j / 9:
+                    fallthrough
+                case j / 10:
+                    goto outer
+                default:
+                    if ok, val := failpoint.Eval("failpoint-name"); ok {
+                        fmt.Println("unit-test", val.(int))
+                        if val == j/11 {
+                            break inner
+                        } else {
+                            goto outer
+                        }
                     }
                 }
             }
         }
-    }
-```
+    ```
 
-You may doubt why we do not use `label`, break`, `continue`, and `fallthrough` directly
+- You may doubt why we do not use `label`, break`, `continue`, and `fallthrough` directly
 instead of using failpoint marker functions. 
 
-- Unused label will occurred compiler error in compile phrase if a label is just used in
-failpoint closure.
-- `break` and `continue` can only be used in the loop context, which is not legal in the Golang code 
-if we use them in closure directly.
+    - Any unused symbol like ident, label is not permit in Golang. It will be invalid if some
+    label only used in the failpoint closure. For example,
+    
+        ```go
+        label1: // compiler error: unused label1
+            failpoint.Inject("failpoint-name", func(_ context.Context, val failpoint.Value) {
+                if val.(int) == 1000 {
+                    goto label1 // illegal to use goto here
+                }
+                fmt.Println("unit-test", val)
+            })
+        ```
+
+    - `break` and `continue` can only be used in the loop context, which is not legal in the Golang code 
+    if we use them in closure directly.
 
 ### Some complicated failpoints demo
 
@@ -268,124 +278,124 @@ if we use them in closure directly.
 
     The above bode block will generate something like this:
 
-```go
-if a, b := func() {
-    if ok, val := failpoint.Eval("failpoint-name"); ok {
-        fmt.Println("unit-test", val)
+    ```go
+    if a, b := func() {
+        if ok, val := failpoint.Eval("failpoint-name"); ok {
+            fmt.Println("unit-test", val)
+        }
+    }, func() int { return rand.Intn(200) }(); b > func() int {
+        if ok, val := failpoint.Eval("failpoint-name"); ok {
+            return val.(int)
+        }
+        return rand.Intn(3000)
+    }() && b < func() int {
+        if ok, val := failpoint.Eval("failpoint-name-2"); ok {
+            return rand.Intn(val.(int))
+        }
+        return rand.Intn(6000)
+    }() {
+        a()
+        if ok, val := failpoint.Eval("failpoint-name-3"); ok {
+            fmt.Println("unit-test", val)
+        }
     }
-}, func() int { return rand.Intn(200) }(); b > func() int {
-    if ok, val := failpoint.Eval("failpoint-name"); ok {
-        return val.(int)
-    }
-    return rand.Intn(3000)
-}() && b < func() int {
-    if ok, val := failpoint.Eval("failpoint-name-2"); ok {
-        return rand.Intn(val.(int))
-    }
-    return rand.Intn(6000)
-}() {
-    a()
-    if ok, val := failpoint.Eval("failpoint-name-3"); ok {
-        fmt.Println("unit-test", val)
-    }
-}
-```
+    ```
 
 - Inject a failpoint to the SELECT statement to make it block one case if the failpoint is active
 
-```go
-func (s *StoreService) ExecuteStoreTask() {
-    select {
-    case <-func() chan *StoreTask {
-        failpoint.Inject("priority-fp", func(_ failpoint.Value) {
-            return make(chan *StoreTask)
-        })
-        return s.priorityHighCh
-    }():
-        fmt.Println("execute high priority task")
+    ```go
+    func (s *StoreService) ExecuteStoreTask() {
+        select {
+        case <-func() chan *StoreTask {
+            failpoint.Inject("priority-fp", func(_ failpoint.Value) {
+                return make(chan *StoreTask)
+            })
+            return s.priorityHighCh
+        }():
+            fmt.Println("execute high priority task")
 
-    case <- s.priorityNormalCh:
-        fmt.Println("execute normal priority task")
+        case <- s.priorityNormalCh:
+            fmt.Println("execute normal priority task")
 
-    case <- s.priorityLowCh:
-        fmt.Println("execute normal low task")
+        case <- s.priorityLowCh:
+            fmt.Println("execute normal low task")
+        }
     }
-}
-```
+    ```
 
     The above code block will generate something like this:
 
-```go
-func (s *StoreService) ExecuteStoreTask() {
-    select {
-    case <-func() chan *StoreTask {
-        if ok, _ := failpoint.Eval("priority-fp"); ok {
-            return make(chan *StoreTask)
-        })
-        return s.priorityHighCh
-    }():
-        fmt.Println("execute high priority task")
+    ```go
+    func (s *StoreService) ExecuteStoreTask() {
+        select {
+        case <-func() chan *StoreTask {
+            if ok, _ := failpoint.Eval("priority-fp"); ok {
+                return make(chan *StoreTask)
+            })
+            return s.priorityHighCh
+        }():
+            fmt.Println("execute high priority task")
 
-    case <- s.priorityNormalCh:
-        fmt.Println("execute normal priority task")
+        case <- s.priorityNormalCh:
+            fmt.Println("execute normal priority task")
 
-    case <- s.priorityLowCh:
-        fmt.Println("execute normal low task")
+        case <- s.priorityLowCh:
+            fmt.Println("execute normal low task")
+        }
     }
-}
-```
+    ```
 
 - Inject a failpoint to dynamically extend SWITCH CASE arms
 
-```go
-switch opType := operator.Type(); {
-case opType == "balance-leader":
-    fmt.Println("create balance leader steps")
+    ```go
+    switch opType := operator.Type(); {
+    case opType == "balance-leader":
+        fmt.Println("create balance leader steps")
 
-case opType == "balance-region":
-    fmt.Println("create balance region steps")
+    case opType == "balance-region":
+        fmt.Println("create balance region steps")
 
-case opType == "scatter-region":
-    fmt.Println("create scatter region steps")
+    case opType == "scatter-region":
+        fmt.Println("create scatter region steps")
 
-case func() bool {
-    failpoint.Inject("dynamic-op-type", func(val failpoint.Value) bool {
-        return strings.Contains(val.(string), opType)
-    })
-    return false
-}():
-    fmt.Println("do something")
+    case func() bool {
+        failpoint.Inject("dynamic-op-type", func(val failpoint.Value) bool {
+            return strings.Contains(val.(string), opType)
+        })
+        return false
+    }():
+        fmt.Println("do something")
 
-default:
-    panic("unsupported operator type")
-}
-```
+    default:
+        panic("unsupported operator type")
+    }
+    ```
 
     The above code block will generate something like this:
 
-```go
-switch opType := operator.Type(); {
-case opType == "balance-leader":
-    fmt.Println("create balance leader steps")
+    ```go
+    switch opType := operator.Type(); {
+    case opType == "balance-leader":
+        fmt.Println("create balance leader steps")
 
-case opType == "balance-region":
-    fmt.Println("create balance region steps")
+    case opType == "balance-region":
+        fmt.Println("create balance region steps")
 
-case opType == "scatter-region":
-    fmt.Println("create scatter region steps")
+    case opType == "scatter-region":
+        fmt.Println("create scatter region steps")
 
-case func() bool {
-    if ok, val := failpoint.Eval"dynamic-op-type"); ok {
-        return strings.Contains(val.(string), opType)
-    })
-    return false
-}():
-    fmt.Println("do something")
+    case func() bool {
+        if ok, val := failpoint.Eval"dynamic-op-type"); ok {
+            return strings.Contains(val.(string), opType)
+        })
+        return false
+    }():
+        fmt.Println("do something")
 
-default:
-    panic("unsupported operator type")
-}
-```
+    default:
+        panic("unsupported operator type")
+    }
+    ```
 
 - More complicated failpoints
 
@@ -398,9 +408,9 @@ default:
 
 ## Implementation details
 
-- Define a group of marker functions
-- Parse imports and prune a source file which does not import a failpoint
-- Traverse AST to find marker function calls
-- Marker function calls will be rewritten with an IF statement, which calls failpoint.Eval to determine whether a failpoint is active and executes failpoint code if the failpoint is enabled
+1. Define a group of marker functions
+2. Parse imports and prune a source file which does not import a failpoint
+3. Traverse AST to find marker function calls
+4. Marker function calls will be rewritten with an IF statement, which calls failpoint.Eval to determine whether a failpoint is active and executes failpoint code if the failpoint is enabled
 
 ![rewrite-demo](./media/rewrite-demo.png)
