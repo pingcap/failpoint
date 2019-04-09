@@ -5,7 +5,7 @@
 [![Build Status](https://api.travis-ci.com/pingcap/failpoint.svg?branch=master)](https://travis-ci.com/pingcap/failpoint)
 [![Coverage Status](https://codecov.io/gh/pingcap/failpoint/branch/master/graph/badge.svg)](https://codecov.io/gh/pingcap/failpoint)
 
-An implementation of [failpoints][failpoint] for golang.
+An implementation of [failpoints][failpoint] for Golang.
 
 [failpoint]: http://www.freebsd.org/cgi/man.cgi?query=fail
 
