@@ -414,3 +414,7 @@ instead of using failpoint marker functions.
 4. Marker function calls will be rewritten with an IF statement, which calls failpoint.Eval to determine whether a failpoint is active and executes failpoint code if the failpoint is enabled
 
 ![rewrite-demo](./media/rewrite-demo.png)
+
+## Acknowledgments
+
+- Thanks [gofail](https://github.com/etcd-io/gofail) to provide initial implementation
