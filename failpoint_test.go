@@ -21,7 +21,7 @@ func (s *failpointSuite) TestWithHook(c *C) {
 		return false
 	})
 	ok, val := failpoint.Eval("unit-test", ctx)
-	c.Assert(ok, Equals, false)
+	c.Assert(ok, IsFalse)
 	c.Assert(val, IsNil)
 
 	ctx = failpoint.WithHook(context.Background(), func(ctx context.Context, fpname string) bool {
@@ -30,10 +30,10 @@ func (s *failpointSuite) TestWithHook(c *C) {
 	err := failpoint.Enable("TestWithHook-test-1", "return(1)")
 	defer func() {
 		err := failpoint.Disable("TestWithHook-test-1")
-		c.Assert(err, Equals, nil)
+		c.Assert(err, IsNil)
 	}()
 	c.Assert(err, Equals, nil)
 	ok, val = failpoint.Eval("TestWithHook-test-1", ctx)
-	c.Assert(ok, Equals, true)
+	c.Assert(ok, IsTrue)
 	c.Assert(val.(int), Equals, 1)
 }
