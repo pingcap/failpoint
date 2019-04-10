@@ -74,6 +74,11 @@ func (r *Rewriter) rewriteAssign(v *ast.AssignStmt) error {
 	//         ...
 	//     })
 	// }
+	// ch := <-func() chan interface{} {
+	//     failpoint.Marker(fpname, func() {
+	//         ...
+	//     })
+	// }
 	for _, v := range v.Rhs {
 		if fn, ok := v.(*ast.FuncLit); ok {
 			err := r.rewriteFuncLit(fn)
@@ -85,6 +90,14 @@ func (r *Rewriter) rewriteAssign(v *ast.AssignStmt) error {
 			err := r.rewriteCallExpr(call)
 			if err != nil {
 				return err
+			}
+		}
+		if sendOrRecv, ok := v.(*ast.UnaryExpr); ok {
+			if callExpr, ok2 := sendOrRecv.X.(*ast.CallExpr); ok2 {
+				err := r.rewriteCallExpr(callExpr)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -326,17 +339,26 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 
 		case *ast.CommClause:
 			// select {
+			// case ch := <-func() chan bool {...}():
 			// case <- fromCh:
 			// case toCh <- x:
 			// case <- func() chan bool {...}():
 			// default:
 			// }
 			if v.Comm != nil {
-				sendOrRecv := v.Comm.(*ast.ExprStmt).X.(*ast.UnaryExpr)
-				if callExpr, ok := sendOrRecv.X.(*ast.CallExpr); ok {
-					err := r.rewriteCallExpr(callExpr)
+				if assign, ok := v.Comm.(*ast.AssignStmt); ok {
+					err := r.rewriteAssign(assign)
 					if err != nil {
 						return err
+					}
+				}
+				if expr, ok := v.Comm.(*ast.ExprStmt); ok {
+					sendOrRecv := expr.X.(*ast.UnaryExpr)
+					if callExpr, ok2 := sendOrRecv.X.(*ast.CallExpr); ok2 {
+						err := r.rewriteCallExpr(callExpr)
+						if err != nil {
+							return err
+						}
 					}
 				}
 			}
