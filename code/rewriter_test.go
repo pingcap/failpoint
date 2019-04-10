@@ -157,47 +157,7 @@ import (
 var ctx = context.Background()
 
 func unittest() {
-	failpoint.Inject("failpoint-name", func(ctx context.Context, val failpoint.Value) {
-		fmt.Println("unit-test", val)
-	})
-}
-`,
-			expected: `
-package rewriter_test
-
-import (
-	"context"
-	"fmt"
-
-	"github.com/pingcap/failpoint"
-)
-
-var ctx = context.Background()
-
-func unittest() {
-	if ok, val := failpoint.Eval("failpoint-name", ctx); ok {
-		fmt.Println("unit-test", val)
-	}
-}
-`,
-		},
-
-		{
-			filepath: "basic-test-with-ctx-2.go",
-			original: `
-package rewriter_test
-
-import (
-	"context"
-	"fmt"
-
-	"github.com/pingcap/failpoint"
-)
-
-var ctx = context.Background()
-
-func unittest() {
-	failpoint.Inject("failpoint-name", func(val failpoint.Value, ctx context.Context) {
+	failpoint.InjectContext("failpoint-name", ctx, func(val failpoint.Value) {
 		fmt.Println("unit-test", val)
 	})
 }
@@ -235,7 +195,7 @@ import (
 )
 
 func unittest() {
-	failpoint.Inject("failpoint-name", func(_ context.Context, val failpoint.Value) {
+	failpoint.InjectContext("failpoint-name", nil, func(val failpoint.Value) {
 		fmt.Println("unit-test", val)
 	})
 }
@@ -251,43 +211,7 @@ import (
 )
 
 func unittest() {
-	if ok, val := failpoint.Eval("failpoint-name"); ok {
-		fmt.Println("unit-test", val)
-	}
-}
-`,
-		},
-
-		{
-			filepath: "basic-test-with-ctx-ignore-2.go",
-			original: `
-package rewriter_test
-
-import (
-	"context"
-	"fmt"
-
-	"github.com/pingcap/failpoint"
-)
-
-func unittest() {
-	failpoint.Inject("failpoint-name", func(val failpoint.Value, _ context.Context) {
-		fmt.Println("unit-test", val)
-	})
-}
-`,
-			expected: `
-package rewriter_test
-
-import (
-	"context"
-	"fmt"
-
-	"github.com/pingcap/failpoint"
-)
-
-func unittest() {
-	if ok, val := failpoint.Eval("failpoint-name"); ok {
+	if ok, val := failpoint.Eval("failpoint-name", nil); ok {
 		fmt.Println("unit-test", val)
 	}
 }
@@ -307,7 +231,7 @@ import (
 )
 
 func unittest() {
-	failpoint.Inject("failpoint-name", func(_ context.Context, _ failpoint.Value) {
+	failpoint.InjectContext("failpoint-name", nil, func(_ failpoint.Value) {
 		fmt.Println("unit-test")
 	})
 }
@@ -323,7 +247,7 @@ import (
 )
 
 func unittest() {
-	if ok, _ := failpoint.Eval("failpoint-name"); ok {
+	if ok, _ := failpoint.Eval("failpoint-name", nil); ok {
 		fmt.Println("unit-test")
 	}
 }
@@ -1389,7 +1313,7 @@ func unittest() {
 
 	rewriter := code.NewRewriter(s.path)
 	err = rewriter.Rewrite()
-	c.Assert(err.Error(), Matches, "failpoint: invalid signature with type.*")
+	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature with type.*")
 }
 
 func (s *rewriterSuite) TestRewriteBad2(c *C) {
@@ -1399,7 +1323,7 @@ func (s *rewriterSuite) TestRewriteBad2(c *C) {
 	}{
 		// bad cases
 		{
-			filepath: "bad-basic-test.go",
+			filepath: "bad-basic-test2.go",
 			original: `
 package rewriter_test
 
@@ -1436,7 +1360,7 @@ func unittest() {
 	rewriter := code.NewRewriter(s.path)
 	err = rewriter.Rewrite()
 	c.Assert(err, NotNil)
-	c.Assert(err.Error(), Matches, "failpoint: invalid signature.*")
+	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature.*")
 }
 
 func (s *rewriterSuite) TestRewriteBad3(c *C) {
@@ -1446,7 +1370,7 @@ func (s *rewriterSuite) TestRewriteBad3(c *C) {
 	}{
 		// bad cases
 		{
-			filepath: "bad-basic-test.go",
+			filepath: "bad-basic-test3.go",
 			original: `
 package rewriter_test
 
@@ -1483,5 +1407,5 @@ func unittest() {
 	rewriter := code.NewRewriter(s.path)
 	err = rewriter.Rewrite()
 	c.Assert(err, NotNil)
-	c.Assert(err.Error(), Matches, "failpoint: invalid signature.*")
+	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature.*")
 }
