@@ -329,12 +329,15 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			// case <- fromCh:
 			// case toCh <- x:
 			// case <- func() chan bool {...}():
+			// default:
 			// }
-			sendOrRecv := v.Comm.(*ast.ExprStmt).X.(*ast.UnaryExpr)
-			if callExpr, ok := sendOrRecv.X.(*ast.CallExpr); ok {
-				err := r.rewriteCallExpr(callExpr)
-				if err != nil {
-					return err
+			if v.Comm != nil {
+				sendOrRecv := v.Comm.(*ast.ExprStmt).X.(*ast.UnaryExpr)
+				if callExpr, ok := sendOrRecv.X.(*ast.CallExpr); ok {
+					err := r.rewriteCallExpr(callExpr)
+					if err != nil {
+						return err
+					}
 				}
 			}
 			err := r.rewriteStmts(v.Body)
