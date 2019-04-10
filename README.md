@@ -44,9 +44,8 @@ An implementation of [failpoints][failpoint] for Golang.
         - To hint the rewriter to rewrite with an equality statement
         - To receive some parameters as the rewrite rule
         - It will be inline in the compiling time and emit nothing to binary (zero cost)
-        - The closure can access external variables in a valid syntax that is called capture, and
-        the converted IF statement is still legal because all of captured-variables
-        become an outer scope variable access. That’s awesome
+        - The variables in external scope can be accessed in closure by capturing, and the converted code is still legal
+        because all the captured-variables location in outer scope of IF statement.
 
     - It is easy to write/read 
     - Introduce a compiler check for failpoints which cannot compile in the regular mode if failpoint code is invalid
@@ -406,12 +405,34 @@ instead of using failpoint marker functions.
         - …
     - Anywhere you can write a function literal
 
+## Failpoint name best practice
+
+Because of all the failpoints name location in the same namespace, we need to be careful to avoid name conflict. There are
+some recommended naming rule to improve this situation.
+
+- The name start with your project name
+- Use subpackage name as the part of name
+- Use a self-explanatory name for the failpoint
+
+    For examples,
+    ```go
+    failpoint.Inject("github.com/pingcap/tidb/ddl/renameTableErr", func(val failpoint.Value) {...})
+    failpoint.Inject("github.com/pingcap/tidb/planner/core/illegalPushDown", func(val failpoint.Value) {...})
+    failpoint.Inject("github.com/pingcap/pd/server/schedulers/balanceLeaderFailed", func(val failpoint.Value) {...})
+    ```
+    
+    You can enable failpoints by environment variables
+    ```shell
+    GO_FAILPOINTS="github.com/pingcap/tidb/ddl/renameTableErr=return(100);github.com/pingcap/tidb/planner/core/illegalPushDown=return(true);github.com/pingcap/pd/server/schedulers/balanceLeaderFailed=return(true)"
+    ```
+    
 ## Implementation details
 
 1. Define a group of marker functions
 2. Parse imports and prune a source file which does not import a failpoint
 3. Traverse AST to find marker function calls
-4. Marker function calls will be rewritten with an IF statement, which calls failpoint.Eval to determine whether a failpoint is active and executes failpoint code if the failpoint is enabled
+4. Marker function calls will be rewritten with an IF statement, which calls failpoint.Eval to determine whether a
+failpoint is active and executes failpoint code if the failpoint is enabled
 
 ![rewrite-demo](./media/rewrite-demo.png)
 
