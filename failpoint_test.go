@@ -22,7 +22,7 @@ func (s *failpointSuite) TestWithHook(c *C) {
 	})
 	ok, val := failpoint.Eval("unit-test", ctx)
 	c.Assert(ok, Equals, false)
-	c.Assert(val, Equals, nil)
+	c.Assert(val, IsNil)
 
 	ctx = failpoint.WithHook(context.Background(), func(ctx context.Context, fpname string) bool {
 		return true
