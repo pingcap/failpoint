@@ -54,7 +54,7 @@ An implementation of [failpoints][failpoint] for Golang.
 - Marker funtion list
 
     - `func Inject(fpname string, fpblock func(val Value)) {}`
-    - `func Inject(fpname string, fpblock func(ctx context.Context, val Value)) {}`
+    - `func InjectContext(fpname string, ctx context.Context, fpblock func(val Value)) {}`
     - `func Break(label ...string) {}`
     - `func Goto(label string) {}`
     - `func Continue(label ...string) {}`
@@ -110,7 +110,7 @@ do some customized things with `context.Context` like controlling whether a fail
 active in parallel tests or other cases. For example,
 
     ```go
-    failpoint.Inject("failpoint-name", func(ctx context.Context, val failpoint.Value) {
+    failpoint.Inject("failpoint-name", ctx, func(val failpoint.Value) {
         fmt.Println("unit-test", val)
     })
     ```
@@ -126,7 +126,7 @@ active in parallel tests or other cases. For example,
 - You can ignore `context.Context`, and will generate the same code as above none-context version. For examble,
 
     ```go
-    failpoint.Inject("failpoint-name", func(_ context.Context, val failpoint.Value) {
+    failpoint.Inject("failpoint-name", nil, func(val failpoint.Value) {
         fmt.Println("unit-test", val)
     })
     ```
@@ -134,7 +134,7 @@ active in parallel tests or other cases. For example,
     Becomes
 
     ```go
-    if ok, val := failpoint.Eval("failpoint-name"); ok {
+    if ok, val := failpoint.Eval("failpoint-name", nil); ok {
         fmt.Println("unit-test", val)
     }
     ```
