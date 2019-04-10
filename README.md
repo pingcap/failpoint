@@ -417,4 +417,4 @@ instead of using failpoint marker functions.
 
 ## Acknowledgments
 
-- Thanks [gofail](https://github.com/etcd-io/gofail) to provide initial implementation
+- Thanks [gofail](https://github.com/etcd-io/gofail) to provide initial implementation.
