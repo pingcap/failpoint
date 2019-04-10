@@ -1051,6 +1051,10 @@ func unittest() {
 		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
 			fmt.Println("unit-test", val)
 		})
+	default:
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+			fmt.Println("unit-test", val)
+		})
 	}
 }
 `,
@@ -1082,6 +1086,10 @@ func unittest() {
 		}
 		return make(chan bool)
 	}():
+		if ok, val := failpoint.Eval("failpoint-name"); ok {
+			fmt.Println("unit-test", val)
+		}
+	default:
 		if ok, val := failpoint.Eval("failpoint-name"); ok {
 			fmt.Println("unit-test", val)
 		}
