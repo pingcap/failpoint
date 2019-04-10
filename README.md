@@ -27,8 +27,8 @@ An implementation of [failpoints][failpoint] for Golang.
 
 - Failpoint
 
-    Faillpoint is a code snippet which only executes in corresponding failpoint is active.
-    The closure will never execute if we `failpoint.Disable("failpoint-name-for-demo")`.
+    Faillpoint is a code snippet that is only executed when the corresponding failpoint is active.
+    The closure will never be executed if `failpoint.Disable("failpoint-name-for-demo")` is executed.
 
     ```go
     var outerVar = "declare in outer scope"
@@ -79,7 +79,7 @@ used to trigger the failpoint and `failpoint-closure` will be expanded as the bo
     }
     ```
 
-- The `failpoint.Value` is the value that pass by `failpoint.Enable("failpoint-name", "return(5)")`
+- `failpoint.Value` is the value that passes by `failpoint.Enable("failpoint-name", "return(5)")`
 which can be ignored.
 
     ```go
@@ -122,7 +122,7 @@ active in parallel tests or other cases. For example,
     }
     ```
 
-- You can ignore `context.Context`, and will generate the same code as above none-context version. For examble,
+- You can ignore `context.Context`, and this will generate the same code as above non-context version. For example,
 
     ```go
     failpoint.Inject("failpoint-name", nil, func(val failpoint.Value) {
@@ -162,7 +162,7 @@ active in parallel tests or other cases. For example,
             _, found := deleteFailpoints[fpname] // Only disables failpoints. 
             return !found
         })
-        // ... other DML parallel test cases.
+        // other DML parallel test cases.
         s.RunParallel(buildSelectTests(sctx))
         s.RunParallel(buildInsertTests(ictx))
         s.RunParallel(buildDeleteTests(dctx))
@@ -229,7 +229,7 @@ active in parallel tests or other cases. For example,
         }
     ```
 
-- You may doubt why we do not use `label`, break`, `continue`, and `fallthrough` directly
+- You may doubt why we do not use `label`, `break`, `continue`, and `fallthrough` directly
 instead of using failpoint marker functions. 
 
     - Any unused symbol like ident, label is not permit in Golang. It will be invalid if some
@@ -275,7 +275,7 @@ instead of using failpoint marker functions.
     }
     ```
 
-    The above bode block will generate something like this:
+    The above code block will generate something like this:
 
     ```go
     if a, b := func() {
