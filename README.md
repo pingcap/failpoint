@@ -232,8 +232,8 @@ active in parallel tests or other cases. For example,
 - You may doubt why we do not use `label`, `break`, `continue`, and `fallthrough` directly
 instead of using failpoint marker functions. 
 
-    - Any unused symbol like ident, label is not permit in Golang. It will be invalid if some
-    label only used in the failpoint closure. For example,
+    - Any unused symbol like an ident or a label is not permitted in Golang. It will be invalid if some
+    label is only used in the failpoint closure. For example,
     
         ```go
         label1: // compiler error: unused label1
@@ -300,7 +300,7 @@ instead of using failpoint marker functions.
     }
     ```
 
-- Inject a failpoint to the SELECT statement to make it block one case if the failpoint is active
+- Inject a failpoint to the SELECT statement to make it block one CASE if the failpoint is active
 
     ```go
     func (s *StoreService) ExecuteStoreTask() {
@@ -403,7 +403,7 @@ instead of using failpoint marker functions.
         - for the RANGE statement
         - SWITCH INITIAL statement
         - …
-    - Anywhere you can write a function literal
+    - Anywhere you can call a function
 
 ## Failpoint name best practice
 
