@@ -32,7 +32,7 @@ func (s *failpointSuite) TestWithHook(c *C) {
 		err := failpoint.Disable("TestWithHook-test-1")
 		c.Assert(err, IsNil)
 	}()
-	c.Assert(err, Equals, nil)
+	c.Assert(err, IsNil)
 	ok, val = failpoint.Eval("TestWithHook-test-1", ctx)
 	c.Assert(ok, IsTrue)
 	c.Assert(val.(int), Equals, 1)
