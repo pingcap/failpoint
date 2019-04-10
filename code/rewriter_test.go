@@ -956,6 +956,17 @@ import (
 
 func unittest() {
 	select {
+	case ch := <-func() chan bool {
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+			fmt.Println("unit-test", val)
+		})
+		return make(chan bool)
+	}():
+		fmt.Println(ch)
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+			fmt.Println("unit-test", val)
+		})
+
 	case <-func() chan bool {
 		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
 			fmt.Println("unit-test", val)
@@ -994,6 +1005,17 @@ import (
 
 func unittest() {
 	select {
+	case ch := <-func() chan bool {
+		if ok, val := failpoint.Eval("failpoint-name"); ok {
+			fmt.Println("unit-test", val)
+		}
+		return make(chan bool)
+	}():
+		fmt.Println(ch)
+		if ok, val := failpoint.Eval("failpoint-name"); ok {
+			fmt.Println("unit-test", val)
+		}
+
 	case <-func() chan bool {
 		if ok, val := failpoint.Eval("failpoint-name"); ok {
 			fmt.Println("unit-test", val)
@@ -1274,7 +1296,7 @@ outer:
 		expected := filepath.Join(s.path, cs.filepath)
 		content, err := ioutil.ReadFile(expected)
 		c.Assert(err, Equals, nil)
-		c.Assert(strings.TrimSpace(cs.expected), Equals, strings.TrimSpace(string(content)))
+		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.expected))
 	}
 }
 
