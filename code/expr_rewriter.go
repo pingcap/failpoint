@@ -23,33 +23,34 @@ import (
 type exprRewriter func(rewriter *Rewriter, call *ast.CallExpr) (rewritten bool, result ast.Stmt, err error)
 
 var exprRewriters = map[string]exprRewriter{
-	"Inject":      (*Rewriter).rewriteInject,
-	"Break":       (*Rewriter).rewriteBreak,
-	"Continue":    (*Rewriter).rewriteContinue,
-	"Label":       (*Rewriter).rewriteLabel,
-	"Goto":        (*Rewriter).rewroteGoto,
-	"Fallthrough": (*Rewriter).rewroteFallthrough,
+	"Inject":        (*Rewriter).rewriteInject,
+	"InjectContext": (*Rewriter).rewriteInjectContext,
+	"Break":         (*Rewriter).rewriteBreak,
+	"Continue":      (*Rewriter).rewriteContinue,
+	"Label":         (*Rewriter).rewriteLabel,
+	"Goto":          (*Rewriter).rewroteGoto,
+	"Fallthrough":   (*Rewriter).rewroteFallthrough,
 }
 
 func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if len(call.Args) != 2 {
-		return false, nil, fmt.Errorf("failpoint: expect 2 arguments but got %v", len(call.Args))
+		return false, nil, fmt.Errorf("failpoint.Inject: expect 2 arguments but got %v", len(call.Args))
 	}
 	fpname, ok := call.Args[0].(*ast.BasicLit)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint: first argument expect string literal but got %T", call.Args[0])
+		return false, nil, fmt.Errorf("failpoint.Inject: first argument expect string literal but got %T", call.Args[0])
 	}
 	fpbody, ok := call.Args[1].(*ast.FuncLit)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint: second argument expect closure but got %T", call.Args[1])
+		return false, nil, fmt.Errorf("failpoint.Inject: second argument expect closure but got %T", call.Args[1])
 	}
 
-	if len(fpbody.Type.Params.List) > 2 {
+	if len(fpbody.Type.Params.List) > 1 {
 		var types []string
 		for _, field := range fpbody.Type.Params.List {
 			types = append(types, fmt.Sprintf("%T", field.Type))
 		}
-		return false, nil, fmt.Errorf("failpoint: invalid signature(%s)", strings.Join(types, ", "))
+		return false, nil, fmt.Errorf("failpoint.Inject: invalid signature(%s)", strings.Join(types, ", "))
 	}
 
 	var body = fpbody.Body.List
@@ -64,72 +65,107 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 		init      *ast.AssignStmt
 	)
 
-	if len(fpbody.Type.Params.List) == 2 {
-		// closure signature:
-		// func(ctx context.Context, val failpoint.Value) {...}
-		var ctx, arg *ast.Field
-		for _, field := range fpbody.Type.Params.List {
-			selector, ok := field.Type.(*ast.SelectorExpr)
-			if !ok {
-				return false, nil, fmt.Errorf("failpoint: invalid signature(%T, %T)",
-					fpbody.Type.Params.List[0].Type, fpbody.Type.Params.List[1].Type)
-			}
-			switch {
-			case selector.Sel.Name == "Context":
-				ctx = field
-			case selector.Sel.Name == "Value" && selector.X.(*ast.Ident).Name == r.failpointName:
-				arg = field
-			default:
-				return false, nil, fmt.Errorf("failpoint: invalid signature with type: %T", field.Type)
-			}
+	// closure signature:
+	// func(val failpoint.Value) {...}
+	// func() {...}
+	var argName *ast.Ident
+	if len(fpbody.Type.Params.List) > 0 {
+		arg := fpbody.Type.Params.List[0]
+		selector, ok := arg.Type.(*ast.SelectorExpr)
+		if !ok || selector.Sel.Name != "Value" || selector.X.(*ast.Ident).Name != r.failpointName {
+			return false, nil, fmt.Errorf("failpoint.Inject: invalid signature with type: %T", arg.Type)
 		}
-		if ctx == nil || arg == nil {
-			return false, nil, fmt.Errorf("failpoint: invalid signature(%T, %T)",
-				fpbody.Type.Params.List[0].Type, fpbody.Type.Params.List[1].Type)
-		}
-		checkCall = &ast.CallExpr{
-			Fun: &ast.SelectorExpr{
-				X:   &ast.Ident{Name: r.failpointName},
-				Sel: &ast.Ident{Name: evalFunction},
-			},
-			Args: []ast.Expr{fpname},
-		}
-		if ctx.Names[0].Name != "_" {
-			checkCall.Args = append(checkCall.Args, ctx.Names[0])
-		}
-		init = &ast.AssignStmt{
-			Lhs: []ast.Expr{cond, arg.Names[0]},
-			Rhs: []ast.Expr{checkCall},
-			Tok: token.DEFINE,
-		}
+		argName = arg.Names[0]
 	} else {
-		// closure signature:
-		// func(val failpoint.Value) {...}
-		// func() {...}
-		var argName *ast.Ident
-		if len(fpbody.Type.Params.List) > 0 {
-			arg := fpbody.Type.Params.List[0]
-			selector, ok := arg.Type.(*ast.SelectorExpr)
-			if !ok || selector.Sel.Name != "Value" || selector.X.(*ast.Ident).Name != r.failpointName {
-				return false, nil, fmt.Errorf("failpoint: invalid signature with type: %T", arg.Type)
-			}
-			argName = arg.Names[0]
-		} else {
-			argName = ast.NewIdent("_")
-		}
+		argName = ast.NewIdent("_")
+	}
 
-		checkCall = &ast.CallExpr{
-			Fun: &ast.SelectorExpr{
-				X:   &ast.Ident{Name: r.failpointName},
-				Sel: &ast.Ident{Name: evalFunction},
-			},
-			Args: []ast.Expr{fpname},
+	checkCall = &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   &ast.Ident{Name: r.failpointName},
+			Sel: &ast.Ident{Name: evalFunction},
+		},
+		Args: []ast.Expr{fpname},
+	}
+	init = &ast.AssignStmt{
+		Lhs: []ast.Expr{cond, argName},
+		Rhs: []ast.Expr{checkCall},
+		Tok: token.DEFINE,
+	}
+
+	stmt := &ast.IfStmt{
+		If:   call.Pos(),
+		Init: init,
+		Cond: cond,
+		Body: ifBody,
+	}
+	return true, stmt, nil
+}
+
+func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, error) {
+	if len(call.Args) != 3 {
+		return false, nil, fmt.Errorf("failpoint.InjectContext: expect 3 arguments but got %v", len(call.Args))
+	}
+	fpname, ok := call.Args[0].(*ast.BasicLit)
+	if !ok {
+		return false, nil, fmt.Errorf("failpoint.InjectContext: first argument expect string literal but got %T", call.Args[0])
+	}
+	ctxname, ok := call.Args[1].(*ast.Ident)
+	if !ok {
+		return false, nil, fmt.Errorf("failpoint.InjectContext: second argument expect string literal but got %T", call.Args[0])
+	}
+	fpbody, ok := call.Args[2].(*ast.FuncLit)
+	if !ok {
+		return false, nil, fmt.Errorf("failpoint.InjectContext: third argument expect closure but got %T", call.Args[1])
+	}
+
+	if len(fpbody.Type.Params.List) > 1 {
+		var types []string
+		for _, field := range fpbody.Type.Params.List {
+			types = append(types, fmt.Sprintf("%T", field.Type))
 		}
-		init = &ast.AssignStmt{
-			Lhs: []ast.Expr{cond, argName},
-			Rhs: []ast.Expr{checkCall},
-			Tok: token.DEFINE,
+		return false, nil, fmt.Errorf("failpoint.InjectContext: invalid signature(%s)", strings.Join(types, ", "))
+	}
+
+	var body = fpbody.Body.List
+	ifBody := &ast.BlockStmt{
+		Lbrace: call.Pos(),
+		List:   body,
+		Rbrace: call.End(),
+	}
+	var (
+		checkCall *ast.CallExpr
+		cond      = ast.NewIdent("ok")
+		init      *ast.AssignStmt
+	)
+
+	// closure signature:
+	// func(val failpoint.Value) {...}
+	// func() {...}
+	var argName *ast.Ident
+	if len(fpbody.Type.Params.List) > 0 {
+		arg := fpbody.Type.Params.List[0]
+		selector, ok := arg.Type.(*ast.SelectorExpr)
+		if !ok || selector.Sel.Name != "Value" || selector.X.(*ast.Ident).Name != r.failpointName {
+			return false, nil, fmt.Errorf("failpoint.InjectContext: invalid signature with type: %T", arg.Type)
 		}
+		argName = arg.Names[0]
+	} else {
+		argName = ast.NewIdent("_")
+	}
+
+	checkCall = &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   &ast.Ident{Name: r.failpointName},
+			Sel: &ast.Ident{Name: evalFunction},
+		},
+		Args: []ast.Expr{fpname, ctxname},
+	}
+
+	init = &ast.AssignStmt{
+		Lhs: []ast.Expr{cond, argName},
+		Rhs: []ast.Expr{checkCall},
+		Tok: token.DEFINE,
 	}
 
 	stmt := &ast.IfStmt{

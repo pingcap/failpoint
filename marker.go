@@ -13,16 +13,25 @@
 
 package failpoint
 
+import "context"
+
 // Inject marks a fail point routine, which will be rewrite to a `if` statement
 // and be triggered by fail point name specified `fpname`
-// Note: The fail point closure  parameter type can only be `context.Context` or `failpoint.Value`
+// Note: The fail point closure  parameter type can only be `failpoint.Value`
 // e.g:
 // failpoint.Inject("fail-point-name", func() (...){}
 // failpoint.Inject("fail-point-name", func(val failpoint.Value) (...){}
-// failpoint.Inject("fail-point-name", func(ctx context.Context) (...){}
-// failpoint.Inject("fail-point-name", func(ctx context.Context, val failpoint.Value) (...){}
-// failpoint.Inject("fail-point-name", func(val failpoint.Value, ctx context.Context) (...){}
+// failpoint.Inject("fail-point-name", func(_ failpoint.Value) (...){}
 func Inject(fpname string, fpbody interface{}) {}
+
+// InjectContext marks a fail point routine, which will be rewrite to a `if` statement
+// and be triggered by fail point name specified `fpname`
+// Note: The fail point closure  parameter type can only be `failpoint.Value`
+// e.g:
+// failpoint.InjectContext("fail-point-name", ctx, func() (...){}
+// failpoint.InjectContext("fail-point-name", ctx, func(val failpoint.Value) (...){}
+// failpoint.InjectContext("fail-point-name", ctx, func(_ failpoint.Value) (...){}
+func InjectContext(fpname string, ctx context.Context, fpbody interface{}) {}
 
 // Break will generate a break statement in a loop, e.g:
 // case1:
