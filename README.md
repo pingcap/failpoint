@@ -9,7 +9,7 @@ An implementation of [failpoints][failpoint] for Golang.
 
 [failpoint]: http://www.freebsd.org/cgi/man.cgi?query=fail
 
-## Features
+## Design principles
 
 - Define failpoint in valid Golang code, not comments or anything else
 - Failpoint does not have any extra cost
@@ -18,9 +18,9 @@ An implementation of [failpoints][failpoint] for Golang.
     - Will not cause regular code performance regression
     - Failpoint code will not appear in the final binary
 
-- Failpoint routine is easy to write/read and should be checked by a compiler
+- Failpoint routine is writable/readable and should be checked by a compiler
 - Generated code by failpoint definition is easy to read
-- Will keep the line number the same (for easy debug)
+- Keep the line numbers same with the injecting codes(easier to debug)
 - Support parallel tests with context.Context
 
 ## Key concepts
