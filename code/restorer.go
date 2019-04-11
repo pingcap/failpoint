@@ -14,6 +14,8 @@
 package code
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,6 +23,7 @@ import (
 
 const (
 	failpointStashFileSuffix = "__failpoint_stash__"
+	failpointBindingFileName = "binding__failpoint_binding__.go"
 )
 
 type Restorer struct {
@@ -60,7 +63,8 @@ func (r Restorer) Restore() error {
 		if info.IsDir() {
 			return nil
 		}
-		if strings.HasSuffix(path, failpointStashFileSuffix) {
+		if strings.HasSuffix(path, failpointStashFileSuffix) ||
+			strings.HasSuffix(path, failpointBindingFileName) {
 			stashFiles = append(stashFiles, path)
 		}
 		return nil
@@ -69,6 +73,12 @@ func (r Restorer) Restore() error {
 		return err
 	}
 	for _, filePath := range stashFiles {
+		if strings.HasSuffix(filePath, failpointBindingFileName) {
+			if err := os.Remove(filePath); err != nil {
+				return err
+			}
+			continue
+		}
 		originFileName := filePath[:len(filePath)-len(failpointStashFileSuffix)]
 		if err := os.Remove(originFileName); err != nil {
 			return err
@@ -78,4 +88,37 @@ func (r Restorer) Restore() error {
 		}
 	}
 	return nil
+}
+
+func failpointBindingPath(path string) string {
+	return filepath.Join(filepath.Dir(path), failpointBindingFileName)
+}
+
+func isBindingFileExists(path string) (bool, error) {
+	bindingFile := failpointBindingPath(path)
+	_, err := os.Stat(bindingFile)
+	if err != nil && os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
+}
+
+func writeBindingFile(path, pak string) error {
+	bindingFile := failpointBindingPath(path)
+	bindingContent := fmt.Sprintf(`
+package %s
+
+import "reflect"
+
+type __failpointBindingType struct {pkgpath string}
+var __failpointBindingCache = &__failpointBindingType{}
+
+func init() {
+	__failpointBindingCache.pkgpath = reflect.TypeOf(__failpointBindingType{}).PkgPath()
+}
+func %s(name string) string {
+	return  __failpointBindingCache.pkgpath + "/" + name
+}
+`, pak, extendPkgName)
+	return ioutil.WriteFile(bindingFile, []byte(bindingContent), os.ModePerm)
 }

@@ -80,12 +80,17 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 		argName = ast.NewIdent("_")
 	}
 
+	fpnameExtendCall := &ast.CallExpr{
+		Fun:  &ast.Ident{Name: extendPkgName},
+		Args: []ast.Expr{fpname},
+	}
+
 	checkCall = &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
 			X:   &ast.Ident{Name: r.failpointName},
 			Sel: &ast.Ident{Name: evalFunction},
 		},
-		Args: []ast.Expr{fpname},
+		Args: []ast.Expr{fpnameExtendCall},
 	}
 	init = &ast.AssignStmt{
 		Lhs: []ast.Expr{cond, argName},
@@ -154,12 +159,17 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 		argName = ast.NewIdent("_")
 	}
 
+	fpnameExtendCall := &ast.CallExpr{
+		Fun:  &ast.Ident{Name: extendPkgName},
+		Args: []ast.Expr{fpname},
+	}
+
 	checkCall = &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
 			X:   &ast.Ident{Name: r.failpointName},
 			Sel: &ast.Ident{Name: evalFunction},
 		},
-		Args: []ast.Expr{fpname, ctxname},
+		Args: []ast.Expr{fpnameExtendCall, ctxname},
 	}
 
 	init = &ast.AssignStmt{
