@@ -109,7 +109,7 @@ do some customized things with `context.Context` like controlling whether a fail
 active in parallel tests or other cases. For example,
 
     ```go
-    failpoint.Inject("failpoint-name", ctx, func(val failpoint.Value) {
+    failpoint.InjectContext(ctx, "failpoint-name", func(val failpoint.Value) {
         fmt.Println("unit-test", val)
     })
     ```
@@ -117,7 +117,7 @@ active in parallel tests or other cases. For example,
     The converted code looks like:
 
     ```go
-    if ok, val := failpoint.Eval(_curpkg_("failpoint-name"), ctx); ok {
+    if ok, val := failpoint.EvalContext(ctx, _curpkg_("failpoint-name")); ok {
         fmt.Println("unit-test", val)
     }
     ```
@@ -125,7 +125,7 @@ active in parallel tests or other cases. For example,
 - You can ignore `context.Context`, and this will generate the same code as above non-context version. For example,
 
     ```go
-    failpoint.Inject("failpoint-name", nil, func(val failpoint.Value) {
+    failpoint.InjectContext(nil, "failpoint-name", func(val failpoint.Value) {
         fmt.Println("unit-test", val)
     })
     ```
@@ -133,7 +133,7 @@ active in parallel tests or other cases. For example,
     Becomes
 
     ```go
-    if ok, val := failpoint.Eval(_curpkg_("failpoint-name"), nil); ok {
+    if ok, val := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); ok {
         fmt.Println("unit-test", val)
     }
     ```
@@ -237,7 +237,7 @@ instead of using failpoint marker functions.
     
         ```go
         label1: // compiler error: unused label1
-            failpoint.Inject("failpoint-name", func(_ context.Context, val failpoint.Value) {
+            failpoint.Inject("failpoint-name", func(val failpoint.Value) {
                 if val.(int) == 1000 {
                     goto label1 // illegal to use goto here
                 }

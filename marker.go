@@ -28,10 +28,10 @@ func Inject(fpname string, fpbody interface{}) {}
 // and be triggered by fail point name specified `fpname`
 // Note: The fail point closure  parameter type can only be `failpoint.Value`
 // e.g:
-// failpoint.InjectContext("fail-point-name", ctx, func() (...){}
-// failpoint.InjectContext("fail-point-name", ctx, func(val failpoint.Value) (...){}
-// failpoint.InjectContext("fail-point-name", ctx, func(_ failpoint.Value) (...){}
-func InjectContext(fpname string, ctx context.Context, fpbody interface{}) {}
+// failpoint.InjectContext(ctx, "fail-point-name", func() (...){}
+// failpoint.InjectContext(ctx, "fail-point-name", func(val failpoint.Value) (...){}
+// failpoint.InjectContext(ctx, "fail-point-name", func(_ failpoint.Value) (...){}
+func InjectContext(ctx context.Context, fpname string, fpbody interface{}) {}
 
 // Break will generate a break statement in a loop, e.g:
 // case1:
