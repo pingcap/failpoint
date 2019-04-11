@@ -111,17 +111,18 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 	if len(call.Args) != 3 {
 		return false, nil, fmt.Errorf("failpoint.InjectContext: expect 3 arguments but got %v", len(call.Args))
 	}
-	fpname, ok := call.Args[0].(*ast.BasicLit)
+
+	ctxname, ok := call.Args[0].(*ast.Ident)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: first argument expect string literal but got %T", call.Args[0])
+		return false, nil, fmt.Errorf("failpoint.InjectContext: first argument expect context but got %T", call.Args[0])
 	}
-	ctxname, ok := call.Args[1].(*ast.Ident)
+	fpname, ok := call.Args[1].(*ast.BasicLit)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: second argument expect string literal but got %T", call.Args[0])
+		return false, nil, fmt.Errorf("failpoint.InjectContext: second argument expect string literal but got %T", call.Args[1])
 	}
 	fpbody, ok := call.Args[2].(*ast.FuncLit)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: third argument expect closure but got %T", call.Args[1])
+		return false, nil, fmt.Errorf("failpoint.InjectContext: third argument expect closure but got %T", call.Args[2])
 	}
 
 	if len(fpbody.Type.Params.List) > 1 {
@@ -167,9 +168,9 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 	checkCall = &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
 			X:   &ast.Ident{Name: r.failpointName},
-			Sel: &ast.Ident{Name: evalFunction},
+			Sel: &ast.Ident{Name: evalCtxFunction},
 		},
-		Args: []ast.Expr{fpnameExtendCall, ctxname},
+		Args: []ast.Expr{ctxname, fpnameExtendCall},
 	}
 
 	init = &ast.AssignStmt{

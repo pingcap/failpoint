@@ -157,7 +157,7 @@ import (
 var ctx = context.Background()
 
 func unittest() {
-	failpoint.InjectContext("failpoint-name", ctx, func(val failpoint.Value) {
+	failpoint.InjectContext(ctx, "failpoint-name", func(val failpoint.Value) {
 		fmt.Println("unit-test", val)
 	})
 }
@@ -175,7 +175,7 @@ import (
 var ctx = context.Background()
 
 func unittest() {
-	if ok, val := failpoint.Eval(_curpkg_("failpoint-name"), ctx); ok {
+	if ok, val := failpoint.EvalContext(ctx, _curpkg_("failpoint-name")); ok {
 		fmt.Println("unit-test", val)
 	}
 }
@@ -195,7 +195,7 @@ import (
 )
 
 func unittest() {
-	failpoint.InjectContext("failpoint-name", nil, func(val failpoint.Value) {
+	failpoint.InjectContext(nil, "failpoint-name", func(val failpoint.Value) {
 		fmt.Println("unit-test", val)
 	})
 }
@@ -211,7 +211,7 @@ import (
 )
 
 func unittest() {
-	if ok, val := failpoint.Eval(_curpkg_("failpoint-name"), nil); ok {
+	if ok, val := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); ok {
 		fmt.Println("unit-test", val)
 	}
 }
@@ -231,7 +231,7 @@ import (
 )
 
 func unittest() {
-	failpoint.InjectContext("failpoint-name", nil, func(_ failpoint.Value) {
+	failpoint.InjectContext(nil, "failpoint-name", func(_ failpoint.Value) {
 		fmt.Println("unit-test")
 	})
 }
@@ -247,7 +247,7 @@ import (
 )
 
 func unittest() {
-	if ok, _ := failpoint.Eval(_curpkg_("failpoint-name"), nil); ok {
+	if ok, _ := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); ok {
 		fmt.Println("unit-test")
 	}
 }

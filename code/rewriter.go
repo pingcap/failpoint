@@ -26,10 +26,11 @@ import (
 )
 
 const (
-	packagePath   = "github.com/pingcap/failpoint"
-	packageName   = "failpoint"
-	evalFunction  = "Eval"
-	extendPkgName = "_curpkg_"
+	packagePath     = "github.com/pingcap/failpoint"
+	packageName     = "failpoint"
+	evalFunction    = "Eval"
+	evalCtxFunction = "EvalContext"
+	extendPkgName   = "_curpkg_"
 )
 
 type Rewriter struct {

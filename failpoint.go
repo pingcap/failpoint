@@ -39,9 +39,8 @@ func WithHook(ctx context.Context, hook Hook) context.Context {
 	return context.WithValue(ctx, failpointCtxKey, hook)
 }
 
-func Eval(fpname string, ctxs ...context.Context) (bool, Value) {
-	if len(ctxs) > 0 && ctxs[0] != nil {
-		ctx := ctxs[0]
+func EvalContext(ctx context.Context, fpname string) (bool, Value) {
+	if ctx != nil {
 		hook := ctx.Value(failpointCtxKey)
 		if hook != nil {
 			h, ok := hook.(Hook)
@@ -50,7 +49,10 @@ func Eval(fpname string, ctxs ...context.Context) (bool, Value) {
 			}
 		}
 	}
+	return Eval(fpname)
+}
 
+func Eval(fpname string) (bool, Value) {
 	failpoints.mu.RLock()
 	defer failpoints.mu.RUnlock()
 	fp, found := failpoints.reg[fpname]
