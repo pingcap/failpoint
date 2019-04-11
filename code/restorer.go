@@ -110,9 +110,14 @@ package %s
 
 import "reflect"
 
-type __failpointBindingType struct {}
+type __failpointBindingType struct {pkgpath string}
+var __failpointBindingCache = &__failpointBindingType{}
+
+func init() {
+	__failpointBindingCache.pkgpath = reflect.TypeOf(__failpointBindingType{}).PkgPath()
+}
 func %s(name string) string {
-	return reflect.TypeOf(__failpointBindingType{}).PkgPath() + "/" + name
+	return  __failpointBindingCache.pkgpath + "/" + name
 }
 `, pak, extendPkgName)
 	return ioutil.WriteFile(bindingFile, []byte(bindingContent), os.ModePerm)
