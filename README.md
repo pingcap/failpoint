@@ -407,7 +407,7 @@ instead of using failpoint marker functions.
 
 ## Failpoint name best practice
 
-As you see above, `_curpkg_` will automatically to add around the original failpoint name in `failpoint.Eval` call.
+As you see above, `_curpkg_` will automatically wrap the original failpoint name in `failpoint.Eval` call.
 You can think `_curpkg_` as a macro to automatically expand current package path to the failpoint name. For example,
 
 ```go
@@ -419,11 +419,11 @@ func demo() {
 }
 ```
 
-You do not need to care about `_curpkg_` in your application, which will automatically generate while run `failpoint-ctl enable`
+You do not need to care about `_curpkg_` in your application, which will be automatically generated while running `failpoint-ctl enable`
 and delete in `failpoint-ctl disable`.
 
 Because of all the failpoints name of a package location in the same namespace, we need to be careful to
-avoid name conflict. There are some recommended naming rule to improve this situation.
+avoid name conflict. There are some recommended naming rules to improve this situation.
 
 - Keep name unique in current subpackage
 - Use a self-explanatory name for the failpoint
