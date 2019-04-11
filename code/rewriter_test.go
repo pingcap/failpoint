@@ -1275,28 +1275,40 @@ outer:
 
 	// Create temp files
 	err := os.MkdirAll(s.path, os.ModePerm)
-	c.Assert(err, Equals, nil)
+	c.Assert(err, IsNil)
 	for _, cs := range cases {
 		original := filepath.Join(s.path, cs.filepath)
 		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
-		c.Assert(err, Equals, nil)
+		c.Assert(err, IsNil)
 	}
 
 	// Clean all temp files
 	defer func() {
 		err := os.RemoveAll(s.path)
-		c.Assert(err, Equals, nil)
+		c.Assert(err, IsNil)
 	}()
 
 	rewriter := code.NewRewriter(s.path)
 	err = rewriter.Rewrite()
-	c.Assert(err, Equals, nil)
+	c.Assert(err, IsNil)
 
 	for _, cs := range cases {
 		expected := filepath.Join(s.path, cs.filepath)
 		content, err := ioutil.ReadFile(expected)
-		c.Assert(err, Equals, nil)
+		c.Assert(err, IsNil)
 		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.expected))
+	}
+
+	// Restore workspace
+	restorer := code.NewRestorer(s.path)
+	err = restorer.Restore()
+	c.Assert(err, IsNil)
+
+	for _, cs := range cases {
+		original := filepath.Join(s.path, cs.filepath)
+		content, err := ioutil.ReadFile(original)
+		c.Assert(err, IsNil)
+		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.original))
 	}
 }
 
@@ -1328,22 +1340,31 @@ func unittest() {
 
 	// Create temp files
 	err := os.MkdirAll(s.path, os.ModePerm)
-	c.Assert(err, Equals, nil)
+	c.Assert(err, IsNil)
 	for _, cs := range cases {
 		original := filepath.Join(s.path, cs.filepath)
 		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
-		c.Assert(err, Equals, nil)
+		c.Assert(err, IsNil)
 	}
 
 	// Clean all temp files
 	defer func() {
 		err := os.RemoveAll(s.path)
-		c.Assert(err, Equals, nil)
+		c.Assert(err, IsNil)
 	}()
 
 	rewriter := code.NewRewriter(s.path)
 	err = rewriter.Rewrite()
+	c.Assert(err, NotNil)
 	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature with type.*")
+
+	// Workspace should be keep clean if some error occurred
+	for _, cs := range cases {
+		original := filepath.Join(s.path, cs.filepath)
+		content, err := ioutil.ReadFile(original)
+		c.Assert(err, IsNil)
+		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.original))
+	}
 }
 
 func (s *rewriterSuite) TestRewriteBad2(c *C) {
@@ -1374,23 +1395,31 @@ func unittest() {
 
 	// Create temp files
 	err := os.MkdirAll(s.path, os.ModePerm)
-	c.Assert(err, Equals, nil)
+	c.Assert(err, IsNil)
 	for _, cs := range cases {
 		original := filepath.Join(s.path, cs.filepath)
 		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
-		c.Assert(err, Equals, nil)
+		c.Assert(err, IsNil)
 	}
 
 	// Clean all temp files
 	defer func() {
 		err := os.RemoveAll(s.path)
-		c.Assert(err, Equals, nil)
+		c.Assert(err, IsNil)
 	}()
 
 	rewriter := code.NewRewriter(s.path)
 	err = rewriter.Rewrite()
 	c.Assert(err, NotNil)
 	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature.*")
+
+	// Workspace should be keep clean if some error occurred
+	for _, cs := range cases {
+		original := filepath.Join(s.path, cs.filepath)
+		content, err := ioutil.ReadFile(original)
+		c.Assert(err, IsNil)
+		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.original))
+	}
 }
 
 func (s *rewriterSuite) TestRewriteBad3(c *C) {
@@ -1421,21 +1450,29 @@ func unittest() {
 
 	// Create temp files
 	err := os.MkdirAll(s.path, os.ModePerm)
-	c.Assert(err, Equals, nil)
+	c.Assert(err, IsNil)
 	for _, cs := range cases {
 		original := filepath.Join(s.path, cs.filepath)
 		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
-		c.Assert(err, Equals, nil)
+		c.Assert(err, IsNil)
 	}
 
 	// Clean all temp files
 	defer func() {
 		err := os.RemoveAll(s.path)
-		c.Assert(err, Equals, nil)
+		c.Assert(err, IsNil)
 	}()
 
 	rewriter := code.NewRewriter(s.path)
 	err = rewriter.Rewrite()
 	c.Assert(err, NotNil)
 	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature.*")
+
+	// Workspace should be keep clean if some error occurred
+	for _, cs := range cases {
+		original := filepath.Join(s.path, cs.filepath)
+		content, err := ioutil.ReadFile(original)
+		c.Assert(err, IsNil)
+		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.original))
+	}
 }
