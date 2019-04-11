@@ -408,7 +408,7 @@ instead of using failpoint marker functions.
 ## Failpoint name best practice
 
 As you see above, `_curpkg_` will automatically to add around the original failpoint name in `failpoint.Eval` call.
-You can think `_curpkg_` as a macro to automatically expand current package path to failpoint name. For example,
+You can think `_curpkg_` as a macro to automatically expand current package path to the failpoint name. For example,
 
 ```go
 package ddl // which parent package is `github.com/pingcap/tidb`
