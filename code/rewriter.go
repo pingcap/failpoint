@@ -138,6 +138,16 @@ func (r *Rewriter) rewriteBinaryExpr(expr *ast.BinaryExpr) error {
 	return nil
 }
 
+func (r *Rewriter) rewriteTypeAssertExpr(expr *ast.TypeAssertExpr) error {
+	if fn, ok := expr.X.(*ast.CallExpr); ok {
+		err := r.rewriteCallExpr(fn)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *Rewriter) rewriteIfStmt(v *ast.IfStmt) error {
 	// if a, b := func() {...}, func() int {...}(); cond {...}
 	if v.Init != nil {
@@ -411,6 +421,26 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 				err := r.rewriteCallExpr(callExpr)
 				if err != nil {
 					return err
+				}
+			}
+			err := r.rewriteStmts(v.Body.List)
+			if err != nil {
+				return err
+			}
+
+		case *ast.TypeSwitchStmt:
+			if v.Assign != nil {
+				if assign, ok := v.Assign.(*ast.AssignStmt); ok {
+					err := r.rewriteAssign(assign)
+					if err != nil {
+						return err
+					}
+				}
+				if expr, ok := v.Assign.(*ast.ExprStmt); ok {
+					err := r.rewriteTypeAssertExpr(expr.X.(*ast.TypeAssertExpr))
+					if err != nil {
+						return err
+					}
 				}
 			}
 			err := r.rewriteStmts(v.Body.List)

@@ -943,6 +943,134 @@ func unittest() {
 		},
 
 		{
+			filepath: "type-switch-statement.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	typeSwitch := func(i interface{}) {
+		inner := func(i interface{}) interface{} {
+			failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+				fmt.Println("unit-test", val)
+			})
+			return i
+		}
+		switch t := inner(i).(type) {
+		case int:
+			failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+				fmt.Println("unit-test", val)
+			})
+			fmt.Println("int type")
+		default:
+			failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+				fmt.Println("unit-test", val)
+			})
+			fmt.Printf("unsupport type %T\n", t)
+		}
+	}
+
+	typeSwitch2 := func(i interface{}) {
+		switch i.(type) {
+		case int:
+			failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+				fmt.Println("unit-test", val)
+			})
+			fmt.Println("int type")
+		}
+	}
+
+	typeSwitch3 := func(i interface{}) {
+		switch func(inf interface{}){
+			failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+				fmt.Println("unit-test", val)
+			})
+			return inf
+		}(i).(type) {
+		case int:
+			failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+				fmt.Println("unit-test", val)
+			})
+			fmt.Println("int type")
+		}
+	}
+
+	num := 42
+	typeSwitch(num)
+	typeSwitch2(num)
+	typeSwitch3(num)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	typeSwitch := func(i interface{}) {
+		inner := func(i interface{}) interface{} {
+			if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				fmt.Println("unit-test", val)
+			}
+			return i
+		}
+		switch t := inner(i).(type) {
+		case int:
+			if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				fmt.Println("unit-test", val)
+			}
+			fmt.Println("int type")
+		default:
+			if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				fmt.Println("unit-test", val)
+			}
+			fmt.Printf("unsupport type %T\n", t)
+		}
+	}
+
+	typeSwitch2 := func(i interface{}) {
+		switch i.(type) {
+		case int:
+			if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				fmt.Println("unit-test", val)
+			}
+			fmt.Println("int type")
+		}
+	}
+
+	typeSwitch3 := func(i interface{}) {
+		switch func(inf interface{}) {
+			if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				fmt.Println("unit-test", val)
+			}
+			return inf
+		}(i).(type) {
+		case int:
+			if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				fmt.Println("unit-test", val)
+			}
+			fmt.Println("int type")
+		}
+	}
+
+	num := 42
+	typeSwitch(num)
+	typeSwitch2(num)
+	typeSwitch3(num)
+}
+`,
+		},
+
+		{
 			filepath: "select-statement.go",
 			original: `
 package rewriter_test
