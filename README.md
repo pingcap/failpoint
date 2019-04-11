@@ -408,21 +408,21 @@ instead of using failpoint marker functions.
 ## Failpoint name best practice
 
 As you see above, `_curpkg_` will automatically wrap the original failpoint name in `failpoint.Eval` call.
-You can think `_curpkg_` as a macro to automatically expand current package path to the failpoint name. For example,
+You can think of `_curpkg_` as a macro that automatically prepends the current package path to the failpoint name. For example,
 
 ```go
 package ddl // which parent package is `github.com/pingcap/tidb`
 
 func demo() {
-	// _curpkg_("the-original-failpoint-name") will be expand as `github.com/pingcap/tidb/ddl/the-original-failpoint-name`
+	// _curpkg_("the-original-failpoint-name") will be expanded as `github.com/pingcap/tidb/ddl/the-original-failpoint-name`
 	if ok, val := failpoint.Eval(_curpkg_("the-original-failpoint-name")); ok {...}
 }
 ```
 
-You do not need to care about `_curpkg_` in your application, which will be automatically generated while running `failpoint-ctl enable`
-and delete in `failpoint-ctl disable`.
+You do not need to care about `_curpkg_` in your application. It is automatically generated after running `failpoint-ctl enable`
+and is deleted with `failpoint-ctl disable`.
 
-Because of all the failpoints name of a package location in the same namespace, we need to be careful to
+Because all failpoints in a package share the same namespace, we need to be careful to
 avoid name conflict. There are some recommended naming rules to improve this situation.
 
 - Keep name unique in current subpackage
@@ -438,7 +438,7 @@ avoid name conflict. There are some recommended naming rules to improve this sit
 1. Define a group of marker functions
 2. Parse imports and prune a source file which does not import a failpoint
 3. Traverse AST to find marker function calls
-4. Marker function calls will be rewritten with an IF statement, which calls `failpoint.Eval `to determine whether a
+4. Marker function calls will be rewritten with an IF statement, which calls `failpoint.Eval` to determine whether a
 failpoint is active and executes failpoint code if the failpoint is enabled
 
 ![rewrite-demo](./media/rewrite-demo.png)
