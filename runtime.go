@@ -35,7 +35,9 @@ import (
 )
 
 var (
-	ErrNoExist  = fmt.Errorf("failpoint: failpoint does not exist")
+	// ErrNoExist represents can not found a failpoint by specified name
+	ErrNoExist = fmt.Errorf("failpoint: failpoint does not exist")
+	// ErrDisabled represents a failpoint is be disabled
 	ErrDisabled = fmt.Errorf("failpoint: failpoint is disabled")
 
 	failpoints struct {
@@ -135,6 +137,7 @@ func Status(failpath string) (string, error) {
 	return t.desc, nil
 }
 
+// List returns all the failpoints information
 func List() []string {
 	failpoints.mu.RLock()
 	ret := make([]string, 0, len(failpoints.reg))

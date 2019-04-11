@@ -26,11 +26,7 @@ const (
 	failpointBindingFileName = "binding__failpoint_binding__.go"
 )
 
-type Restorer struct {
-	path string
-}
-
-// Restorer is represents a manager to restore currentFile tree which been modified by
+// Restorer represents a manager to restore currentFile tree which been modified by
 // `failpoint-ctl enable`, e.g:
 // ├── foo
 // │   ├── foo.go
@@ -48,6 +44,12 @@ type Restorer struct {
 // │   └── bar.go <- bar.go__failpoint_stash__
 // └── foobar
 //     └── foobar.go <- foobar.go__failpoint_stash__
+type Restorer struct {
+	path string
+}
+
+// NewRestorer returns a non-nil restorer which is used to clean the workspace
+// of the specified path
 func NewRestorer(path string) *Restorer {
 	return &Restorer{path: path}
 }
