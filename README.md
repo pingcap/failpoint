@@ -74,7 +74,7 @@ used to trigger the failpoint and `failpoint-closure` will be expanded as the bo
     The converted code looks like:
 
     ```go
-    if ok, val := failpoint.Eval("failpoint-name"); ok {
+    if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
         fmt.Println("unit-test", val)
     }
     ```
@@ -99,7 +99,7 @@ which can be ignored.
     And the converted code looks like:
 
     ```go
-    if ok, _ := failpoint.Eval("failpoint-name"); ok {
+    if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
         fmt.Println("unit-test")
     }
     ```
@@ -117,7 +117,7 @@ active in parallel tests or other cases. For example,
     The converted code looks like:
 
     ```go
-    if ok, val := failpoint.Eval("failpoint-name", ctx); ok {
+    if ok, val := failpoint.Eval(_curpkg_("failpoint-name"), ctx); ok {
         fmt.Println("unit-test", val)
     }
     ```
@@ -133,7 +133,7 @@ active in parallel tests or other cases. For example,
     Becomes
 
     ```go
-    if ok, val := failpoint.Eval("failpoint-name", nil); ok {
+    if ok, val := failpoint.Eval(_curpkg_("failpoint-name"), nil); ok {
         fmt.Println("unit-test", val)
     }
     ```
@@ -216,7 +216,7 @@ active in parallel tests or other cases. For example,
                 case j / 10:
                     goto outer
                 default:
-                    if ok, val := failpoint.Eval("failpoint-name"); ok {
+                    if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
                         fmt.Println("unit-test", val.(int))
                         if val == j/11 {
                             break inner
@@ -279,22 +279,22 @@ instead of using failpoint marker functions.
 
     ```go
     if a, b := func() {
-        if ok, val := failpoint.Eval("failpoint-name"); ok {
+        if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
             fmt.Println("unit-test", val)
         }
     }, func() int { return rand.Intn(200) }(); b > func() int {
-        if ok, val := failpoint.Eval("failpoint-name"); ok {
+        if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
             return val.(int)
         }
         return rand.Intn(3000)
     }() && b < func() int {
-        if ok, val := failpoint.Eval("failpoint-name-2"); ok {
+        if ok, val := failpoint.Eval(_curpkg_("failpoint-name-2")); ok {
             return rand.Intn(val.(int))
         }
         return rand.Intn(6000)
     }() {
         a()
-        if ok, val := failpoint.Eval("failpoint-name-3"); ok {
+        if ok, val := failpoint.Eval(_curpkg_("failpoint-name-3")); ok {
             fmt.Println("unit-test", val)
         }
     }
@@ -328,7 +328,7 @@ instead of using failpoint marker functions.
     func (s *StoreService) ExecuteStoreTask() {
         select {
         case <-func() chan *StoreTask {
-            if ok, _ := failpoint.Eval("priority-fp"); ok {
+            if ok, _ := failpoint.Eval(_curpkg_("priority-fp")); ok {
                 return make(chan *StoreTask)
             })
             return s.priorityHighCh
@@ -384,9 +384,9 @@ instead of using failpoint marker functions.
         fmt.Println("create scatter region steps")
 
     case func() bool {
-        if ok, val := failpoint.Eval"dynamic-op-type"); ok {
+        if ok, val := failpoint.Eval(_curpkg_("dynamic-op-type")); ok {
             return strings.Contains(val.(string), opType)
-        })
+        }
         return false
     }():
         fmt.Println("do something")
@@ -407,19 +407,26 @@ instead of using failpoint marker functions.
 
 ## Failpoint name best practice
 
-Because of all the failpoints name location in the same namespace, we need to be careful to avoid name conflict. There are
-some recommended naming rule to improve this situation.
+As you see above, `_curpkg_` will automatically wrap the original failpoint name in `failpoint.Eval` call.
+You can think of `_curpkg_` as a macro that automatically prepends the current package path to the failpoint name. For example,
 
-- The name start with your project name
-- Use subpackage name as the part of name
+```go
+package ddl // which parent package is `github.com/pingcap/tidb`
+
+func demo() {
+	// _curpkg_("the-original-failpoint-name") will be expanded as `github.com/pingcap/tidb/ddl/the-original-failpoint-name`
+	if ok, val := failpoint.Eval(_curpkg_("the-original-failpoint-name")); ok {...}
+}
+```
+
+You do not need to care about `_curpkg_` in your application. It is automatically generated after running `failpoint-ctl enable`
+and is deleted with `failpoint-ctl disable`.
+
+Because all failpoints in a package share the same namespace, we need to be careful to
+avoid name conflict. There are some recommended naming rules to improve this situation.
+
+- Keep name unique in current subpackage
 - Use a self-explanatory name for the failpoint
-
-    For examples,
-    ```go
-    failpoint.Inject("github.com/pingcap/tidb/ddl/renameTableErr", func(val failpoint.Value) {...})
-    failpoint.Inject("github.com/pingcap/tidb/planner/core/illegalPushDown", func(val failpoint.Value) {...})
-    failpoint.Inject("github.com/pingcap/pd/server/schedulers/balanceLeaderFailed", func(val failpoint.Value) {...})
-    ```
     
     You can enable failpoints by environment variables
     ```shell
@@ -431,7 +438,7 @@ some recommended naming rule to improve this situation.
 1. Define a group of marker functions
 2. Parse imports and prune a source file which does not import a failpoint
 3. Traverse AST to find marker function calls
-4. Marker function calls will be rewritten with an IF statement, which calls failpoint.Eval to determine whether a
+4. Marker function calls will be rewritten with an IF statement, which calls `failpoint.Eval` to determine whether a
 failpoint is active and executes failpoint code if the failpoint is enabled
 
 ![rewrite-demo](./media/rewrite-demo.png)
