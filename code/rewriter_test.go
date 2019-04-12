@@ -24,6 +24,12 @@ import (
 	"github.com/pingcap/failpoint/code"
 )
 
+type filenameComment string
+
+func (c filenameComment) CheckCommentString() string {
+	return string(c)
+}
+
 func TestNewRewriter(t *testing.T) {
 	TestingT(t)
 }
@@ -1399,6 +1405,46 @@ outer:
 }
 `,
 		},
+
+		{
+			filepath: "test-block-statement.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	{
+		failpoint.Inject("failpoint-name", func() {
+			fmt.Println("unit-test")
+		})
+	}
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	{
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			fmt.Println("unit-test")
+		}
+	}
+}
+`,
+		},
 	}
 
 	// Create temp files
@@ -1424,7 +1470,7 @@ outer:
 		expected := filepath.Join(s.path, cs.filepath)
 		content, err := ioutil.ReadFile(expected)
 		c.Assert(err, IsNil)
-		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.expected))
+		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.expected), filenameComment(cs.filepath))
 	}
 
 	// Restore workspace
@@ -1443,11 +1489,13 @@ outer:
 func (s *rewriterSuite) TestRewriteBad(c *C) {
 	var cases = []struct {
 		filepath string
+		errormsg string
 		original string
 	}{
-		// bad cases
+
 		{
 			filepath: "bad-basic-test.go",
+			errormsg: `failpoint\.Inject: invalid signature with type.*`,
 			original: `
 package rewriter_test
 
@@ -1464,44 +1512,10 @@ func unittest() {
 }
 `,
 		},
-	}
 
-	// Create temp files
-	err := os.MkdirAll(s.path, os.ModePerm)
-	c.Assert(err, IsNil)
-	for _, cs := range cases {
-		original := filepath.Join(s.path, cs.filepath)
-		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
-		c.Assert(err, IsNil)
-	}
-
-	// Clean all temp files
-	defer func() {
-		err := os.RemoveAll(s.path)
-		c.Assert(err, IsNil)
-	}()
-
-	rewriter := code.NewRewriter(s.path)
-	err = rewriter.Rewrite()
-	c.Assert(err, ErrorMatches, `failpoint\.Inject: invalid signature with type.*`)
-
-	// Workspace should keep clean if some error occurred
-	for _, cs := range cases {
-		original := filepath.Join(s.path, cs.filepath)
-		content, err := ioutil.ReadFile(original)
-		c.Assert(err, IsNil)
-		c.Assert(string(content), Equals, cs.original)
-	}
-}
-
-func (s *rewriterSuite) TestRewriteBad2(c *C) {
-	var cases = []struct {
-		filepath string
-		original string
-	}{
-		// bad cases
 		{
 			filepath: "bad-basic-test2.go",
+			errormsg: `failpoint.Inject: closure signature illegal .*`,
 			original: `
 package rewriter_test
 
@@ -1518,44 +1532,10 @@ func unittest() {
 }
 `,
 		},
-	}
 
-	// Create temp files
-	err := os.MkdirAll(s.path, os.ModePerm)
-	c.Assert(err, IsNil)
-	for _, cs := range cases {
-		original := filepath.Join(s.path, cs.filepath)
-		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
-		c.Assert(err, IsNil)
-	}
-
-	// Clean all temp files
-	defer func() {
-		err := os.RemoveAll(s.path)
-		c.Assert(err, IsNil)
-	}()
-
-	rewriter := code.NewRewriter(s.path)
-	err = rewriter.Rewrite()
-	c.Assert(err, ErrorMatches, `failpoint\.Inject: invalid signature.*`)
-
-	// Workspace should keep clean if some error occurred
-	for _, cs := range cases {
-		original := filepath.Join(s.path, cs.filepath)
-		content, err := ioutil.ReadFile(original)
-		c.Assert(err, IsNil)
-		c.Assert(string(content), Equals, cs.original)
-	}
-}
-
-func (s *rewriterSuite) TestRewriteBad3(c *C) {
-	var cases = []struct {
-		filepath string
-		original string
-	}{
-		// bad cases
 		{
 			filepath: "bad-basic-test3.go",
+			errormsg: `failpoint.Inject: closure signature illegal .*`,
 			original: `
 package rewriter_test
 
@@ -1569,6 +1549,290 @@ func unittest() {
 	failpoint.Inject("failpoint-name", func(ctx context.Context, val int, val2 string) {
 		fmt.Println("unit-test", val)
 	})
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-test4.go",
+			errormsg: `failpoint.Inject: expect 2 arguments but got 3`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", "invalid string", func(ctx context.Context, val int, val2 string) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-test5.go",
+			errormsg: `failpoint.Inject: closure signature illegal .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(val int, val2 int) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-test5-1.go",
+			errormsg: `failpoint.Inject: closure signature illegal .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(val, val2 int) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-test6.go",
+			errormsg: `failpoint.Inject: first argument expect string literal but got.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject(func(val int, val2 int) {
+		fmt.Println("unit-test", val)
+	}, "failpoint-name")
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-test7.go",
+			errormsg: `failpoint.Inject: second argument expect closure but got.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", "failpoint-name")
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-ctx-test1.go",
+			errormsg: `failpoint.InjectContext: expect 3 arguments but got 4`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.InjectContext("failpoint-name", nil, nil, func(val int, val2 int) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-ctx-test2.go",
+			errormsg: `failpoint.InjectContext: first argument expect context but go.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.InjectContext(func(){}, nil, func(val int, val2 int) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-ctx-test3.go",
+			errormsg: `failpoint.InjectContext: second argument expect string literal but got.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.InjectContext(nil, func(){}, func(val int, val2 int) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-ctx-test4.go",
+			errormsg: `failpoint.InjectContext: third argument expect closure but got.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.InjectContext(nil, "failpoint-name", "string literal")
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-ctx-test5.go",
+			errormsg: `failpoint.InjectContext: closure signature illegal.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.InjectContext(nil, "failpoint-name", func(val int, val int) {})
+}
+`,
+		},
+
+		{
+			filepath: "bad-basic-ctx-test6.go",
+			errormsg: `failpoint.InjectContext: closure signature illegal.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.InjectContext(nil, "failpoint-name", func(val, val int) {})
+}
+`,
+		},
+
+		{
+			filepath: "bad-case-break.go",
+			errormsg: `failpoint.Break expect 1 or 0 arguments, but got.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Break("11", "22")
+}
+`,
+		},
+
+		{
+			filepath: "bad-case-continue.go",
+			errormsg: `failpoint.Continue expect 1 or 0 arguments, but got.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Continue("11", "22")
+}
+`,
+		},
+
+		{
+			filepath: "bad-case-label.go",
+			errormsg: `failpoint.Label expect 1 arguments, but got.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Label("11", "22")
+}
+`,
+		},
+
+		{
+			filepath: "bad-case-goto.go",
+			errormsg: `failpoint.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Goto("11", "22")
 }
 `,
 		},
@@ -1589,15 +1853,14 @@ func unittest() {
 		c.Assert(err, IsNil)
 	}()
 
-	rewriter := code.NewRewriter(s.path)
-	err = rewriter.Rewrite()
-	c.Assert(err, ErrorMatches, `failpoint\.Inject: invalid signature.*`)
-
 	// Workspace should keep clean if some error occurred
 	for _, cs := range cases {
 		original := filepath.Join(s.path, cs.filepath)
+		rewriter := code.NewRewriter(original)
+		err = rewriter.Rewrite()
+		c.Assert(err, ErrorMatches, cs.errormsg, filenameComment(cs.filepath))
 		content, err := ioutil.ReadFile(original)
 		c.Assert(err, IsNil)
-		c.Assert(string(content), Equals, cs.original)
+		c.Assert(string(content), Equals, cs.original, filenameComment(cs.filepath))
 	}
 }

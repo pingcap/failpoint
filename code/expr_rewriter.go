@@ -50,7 +50,15 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 		for _, field := range fpbody.Type.Params.List {
 			types = append(types, fmt.Sprintf("%T", field.Type))
 		}
-		return false, nil, fmt.Errorf("failpoint.Inject: invalid signature(%s)", strings.Join(types, ", "))
+		return false, nil, fmt.Errorf("failpoint.Inject: closure signature illegal (%s)", strings.Join(types, ", "))
+	}
+
+	if len(fpbody.Type.Params.List) == 1 && len(fpbody.Type.Params.List[0].Names) > 1 {
+		var types []string
+		for range fpbody.Type.Params.List[0].Names {
+			types = append(types, fmt.Sprintf("%T", fpbody.Type.Params.List[0].Type))
+		}
+		return false, nil, fmt.Errorf("failpoint.Inject: closure signature illegal (%s)", strings.Join(types, ", "))
 	}
 
 	var body = fpbody.Body.List
@@ -130,7 +138,15 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 		for _, field := range fpbody.Type.Params.List {
 			types = append(types, fmt.Sprintf("%T", field.Type))
 		}
-		return false, nil, fmt.Errorf("failpoint.InjectContext: invalid signature(%s)", strings.Join(types, ", "))
+		return false, nil, fmt.Errorf("failpoint.InjectContext: closure signature illegal (%s)", strings.Join(types, ", "))
+	}
+
+	if len(fpbody.Type.Params.List) == 1 && len(fpbody.Type.Params.List[0].Names) > 1 {
+		var types []string
+		for range fpbody.Type.Params.List[0].Names {
+			types = append(types, fmt.Sprintf("%T", fpbody.Type.Params.List[0].Type))
+		}
+		return false, nil, fmt.Errorf("failpoint.InjectContext: closure signature illegal (%s)", strings.Join(types, ", "))
 	}
 
 	var body = fpbody.Body.List
