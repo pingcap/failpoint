@@ -1483,7 +1483,6 @@ func unittest() {
 
 	rewriter := code.NewRewriter(s.path)
 	err = rewriter.Rewrite()
-	c.Assert(err, NotNil)
 	c.Assert(err, ErrorMatches, `failpoint\.Inject: invalid signature with type.*`)
 
 	// Workspace should keep clean if some error occurred
@@ -1538,8 +1537,7 @@ func unittest() {
 
 	rewriter := code.NewRewriter(s.path)
 	err = rewriter.Rewrite()
-	c.Assert(err, NotNil)
-	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature.*")
+	c.Assert(err, ErrorMatches, `failpoint\.Inject: invalid signature.*`)
 
 	// Workspace should keep clean if some error occurred
 	for _, cs := range cases {
@@ -1593,8 +1591,7 @@ func unittest() {
 
 	rewriter := code.NewRewriter(s.path)
 	err = rewriter.Rewrite()
-	c.Assert(err, NotNil)
-	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature.*")
+	c.Assert(err, ErrorMatches, `failpoint\.Inject: invalid signature.*`)
 
 	// Workspace should keep clean if some error occurred
 	for _, cs := range cases {
