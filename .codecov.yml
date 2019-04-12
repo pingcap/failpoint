@@ -31,7 +31,9 @@ comment:
 
 ignore:
   - "LICENSES"
-  - "*_test.go"       
+  - "*_test.go"
+  - "marker.go"
+  - "failpoint-ctl"
   - ".git"
   - "*.yml"
   - "*.md"
