@@ -26,7 +26,7 @@ const (
 	failpointBindingFileName = "binding__failpoint_binding__.go"
 )
 
-// Restorer represents a manager to restore currentFile tree which been modified by
+// Restorer represents a manager to restore currentFile tree which has been modified by
 // `failpoint-ctl enable`, e.g:
 // ├── foo
 // │   ├── foo.go

@@ -35,7 +35,7 @@ const (
 
 // Rewriter represents a rewriting tool for converting the failpoint markers function to
 // corresponding statements in Golang. It will traverse the specified path and filter
-// out files which does not have failpoint injection sites, and rewrite the remain files.
+// out files which do not have failpoint injection sites, and rewrite the remain files.
 type Rewriter struct {
 	rewriteDir    string
 	currentPath   string
@@ -518,7 +518,7 @@ func (r *Rewriter) rewriteFile(path string) (err error) {
 
 // Rewrite does the rewrite action for specified path. It contains the main steps:
 //
-// 1. Filter out failpoint bind files and files that have no suffix `.go`
+// 1. Filter out failpoint binding files and files that have no suffix `.go`
 // 2. Filter out files which have not import failpoint package (implies no failpoints)
 // 3. Parse file to `ast.File` and rewrite the AST
 // 4. Create failpoint binding file (which contains `_curpkg_` function) if it not exists
