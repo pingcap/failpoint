@@ -1358,7 +1358,7 @@ func unittest() {
 	c.Assert(err, NotNil)
 	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature with type.*")
 
-	// Workspace should be keep clean if some error occurred
+	// Workspace should keep clean if some error occurred
 	for _, cs := range cases {
 		original := filepath.Join(s.path, cs.filepath)
 		content, err := ioutil.ReadFile(original)
@@ -1413,7 +1413,7 @@ func unittest() {
 	c.Assert(err, NotNil)
 	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature.*")
 
-	// Workspace should be keep clean if some error occurred
+	// Workspace should keep clean if some error occurred
 	for _, cs := range cases {
 		original := filepath.Join(s.path, cs.filepath)
 		content, err := ioutil.ReadFile(original)
@@ -1468,7 +1468,7 @@ func unittest() {
 	c.Assert(err, NotNil)
 	c.Assert(err.Error(), Matches, "failpoint.Inject: invalid signature.*")
 
-	// Workspace should be keep clean if some error occurred
+	// Workspace should keep clean if some error occurred
 	for _, cs := range cases {
 		original := filepath.Join(s.path, cs.filepath)
 		content, err := ioutil.ReadFile(original)
