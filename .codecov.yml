@@ -31,7 +31,9 @@ comment:
 
 ignore:
   - "LICENSES"
-  - "*_test.go"       
+  - "*_test.go"
+  - "marker.go" # This file only contains empty function stub
+  - "failpoint-ctl" # Ignore the `failpoint-ctl` command line tool
   - ".git"
   - "*.yml"
   - "*.md"
