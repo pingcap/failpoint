@@ -44,7 +44,7 @@ func (fp *failpoint) Pause() {
 	<-fp.waitChan
 }
 
-// WithHook binding a hook to a new context which base on the `ctx` parameter
+// WithHook binds a hook to a new context which is based on the `ctx` parameter
 func WithHook(ctx context.Context, hook Hook) context.Context {
 	return context.WithValue(ctx, failpointCtxKey, hook)
 }

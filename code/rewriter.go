@@ -516,9 +516,9 @@ func (r *Rewriter) rewriteFile(path string) (err error) {
 	return printer.Fprint(newFile, fset, file)
 }
 
-// Rewrite does the rewrite action for specified path. It is contains the main steps:
+// Rewrite does the rewrite action for specified path. It contains the main steps:
 //
-// 1. Filter out files if it has not suffix `.go` or it is failpoint binding file
+// 1. Filter out failpoint bind files and files that have no suffix `.go`
 // 2. Filter out files which have not import failpoint package (implies no failpoints)
 // 3. Parse file to `ast.File` and rewrite the AST
 // 4. Create failpoint binding file (which contains `_curpkg_` function) if it not exists
