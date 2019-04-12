@@ -20,7 +20,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	err := failpoint.Enable("runtime-test-1", "return(1)")
 	c.Assert(err, IsNil)
 	ok, val := failpoint.Eval("runtime-test-1")
-	c.Assert(ok, Equals, true)
+	c.Assert(ok, IsTrue)
 	c.Assert(val.(int), Equals, 1)
 
 	err = failpoint.Enable("runtime-test-2", "invalid")

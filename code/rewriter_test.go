@@ -1767,7 +1767,7 @@ func unittest() {
 
 		{
 			filepath: "bad-case-break.go",
-			errormsg: `failpoint.Break expect 1 or 0 arguments, but got.*`,
+			errormsg: `failpoint\.Break expect 1 or 0 arguments, but got.*`,
 			original: `
 package rewriter_test
 
@@ -1785,7 +1785,7 @@ func unittest() {
 
 		{
 			filepath: "bad-case-continue.go",
-			errormsg: `failpoint.Continue expect 1 or 0 arguments, but got.*`,
+			errormsg: `failpoint\.Continue expect 1 or 0 arguments, but got.*`,
 			original: `
 package rewriter_test
 
@@ -1803,7 +1803,7 @@ func unittest() {
 
 		{
 			filepath: "bad-case-label.go",
-			errormsg: `failpoint.Label expect 1 arguments, but got.*`,
+			errormsg: `failpoint\.Label expect 1 arguments, but got.*`,
 			original: `
 package rewriter_test
 
@@ -1821,7 +1821,7 @@ func unittest() {
 
 		{
 			filepath: "bad-case-goto.go",
-			errormsg: `failpoint.Goto expect 1 arguments, but got .*`,
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
 			original: `
 package rewriter_test
 
