@@ -1,0 +1,96 @@
+package failpoint_test
+
+import (
+	"testing"
+	"time"
+
+	. "github.com/pingcap/check"
+	"github.com/pingcap/failpoint"
+)
+
+func TestNewRestorer(t *testing.T) {
+	TestingT(t)
+}
+
+var _ = Suite(&runtimeSuite{})
+
+type runtimeSuite struct{}
+
+func (s *runtimeSuite) TestRuntime(c *C) {
+	err := failpoint.Enable("runtime-test-1", "return(1)")
+	c.Assert(err, IsNil)
+	ok, val := failpoint.Eval("runtime-test-1")
+	c.Assert(ok, Equals, true)
+	c.Assert(val.(int), Equals, 1)
+
+	err = failpoint.Enable("runtime-test-2", "invalid")
+	c.Assert(err, ErrorMatches, `failpoint: could not parse terms`)
+
+	ok, val = failpoint.Eval("runtime-test-2")
+	c.Assert(ok, Equals, false)
+
+	err = failpoint.Disable("runtime-test-1")
+	c.Assert(err, IsNil)
+
+	ok, val = failpoint.Eval("runtime-test-1")
+	c.Assert(ok, Equals, false)
+
+	err = failpoint.Disable("runtime-test-1")
+	c.Assert(err, ErrorMatches, `failpoint: failpoint is disabled`)
+
+	err = failpoint.Enable("runtime-test-1", "return(1)")
+	c.Assert(err, IsNil)
+
+	status, err := failpoint.Status("runtime-test-1")
+	c.Assert(err, IsNil)
+	c.Assert(status, Equals, "return(1)")
+
+	err = failpoint.Enable("runtime-test-3", "return(2)")
+	c.Assert(err, IsNil)
+
+	ch := make(chan struct{})
+	go func() {
+		time.Sleep(time.Second)
+		err := failpoint.Disable("gofail/testPause")
+		c.Assert(err, IsNil)
+		close(ch)
+	}()
+	err = failpoint.Enable("gofail/testPause", "pause")
+	c.Assert(err, IsNil)
+	start := time.Now()
+	ok, v := failpoint.Eval("gofail/testPause")
+	c.Assert(ok, Equals, false)
+	c.Assert(v, IsNil)
+	if time.Since(start) < 100*time.Millisecond {
+		c.Fatal("not paused")
+	}
+	<-ch
+
+	err = failpoint.Enable("runtime-test-4", "50.0%return(5)")
+	c.Assert(err, IsNil)
+	var succ int
+	for i := 0; i < 1000; i++ {
+		ok, val = failpoint.Eval("runtime-test-4")
+		if ok {
+			succ++
+			c.Assert(val.(int), Equals, 5)
+		}
+	}
+	if succ < 450 || succ > 550 {
+		c.Fatalf("prop failure: %v", succ)
+	}
+
+	err = failpoint.Enable("runtime-test-5", "50*return(5)")
+	c.Assert(err, IsNil)
+	for i := 0; i < 50; i++ {
+		ok, val = failpoint.Eval("runtime-test-5")
+		c.Assert(ok, Equals, true)
+		c.Assert(val.(int), Equals, 5)
+	}
+	ok, val = failpoint.Eval("runtime-test-5")
+	c.Assert(ok, Equals, false)
+
+	list := failpoint.List()
+	c.Assert(list, DeepEquals, []string{"gofail/testPause", "runtime-test-1", "runtime-test-2",
+		"runtime-test-3", "runtime-test-4", "runtime-test-5"})
+}

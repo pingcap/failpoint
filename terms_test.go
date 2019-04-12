@@ -30,7 +30,6 @@ package failpoint
 import (
 	"reflect"
 	"testing"
-	"time"
 )
 
 func TestTermsString(t *testing.T) {
@@ -84,32 +83,4 @@ func TestTermsTypes(t *testing.T) {
 			t.Fatalf("got %v, expected %v", v, tt.weval)
 		}
 	}
-}
-
-func TestPause(t *testing.T) {
-	c := make(chan struct{})
-	go func() {
-		time.Sleep(time.Second)
-		err := Disable("gofail/testPause")
-		if err != nil {
-			t.Fatalf("disable error %v", err)
-		}
-		close(c)
-	}()
-	err := Enable("gofail/testPause", "pause")
-	if err != nil {
-		t.Fatal(err)
-	}
-	start := time.Now()
-	ok, v := Eval("gofail/testPause")
-	if ok {
-		t.Fatal("expect not active because of pause executed")
-	}
-	if v != nil {
-		t.Fatalf("got %v, excepted %v", v, nil)
-	}
-	if time.Since(start) < 100*time.Millisecond {
-		t.Fatalf("not paused")
-	}
-	<-c
 }

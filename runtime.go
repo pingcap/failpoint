@@ -30,6 +30,7 @@ package failpoint
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -110,7 +111,12 @@ func Disable(failpath string) error {
 	if fp == nil {
 		return ErrNoExist
 	}
-	close(fp.waitChan)
+	select {
+	case <-fp.waitChan:
+		return ErrDisabled
+	default:
+		close(fp.waitChan)
+	}
 	fp.mu.Lock()
 	defer fp.mu.Unlock()
 	if fp.t == nil {
@@ -145,5 +151,6 @@ func List() []string {
 		ret = append(ret, fp)
 	}
 	failpoints.mu.RUnlock()
+	sort.Strings(ret)
 	return ret
 }
