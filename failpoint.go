@@ -18,11 +18,20 @@ import (
 	"sync"
 )
 
-const failpointCtxKey = "__failpoint_ctx_key__"
+const failpointCtxKey string = "__failpoint_ctx_key__"
 
 type (
-	Value     interface{}
-	Hook      func(ctx context.Context, fpname string) bool
+	// Value represents value that retrieved from failpoint terms.
+	// It can be used as following types:
+	// 1. val.(int)      // GO_FAILPOINTS="failpoint-name=return(1)"
+	// 2. val.(string)   // GO_FAILPOINTS="failpoint-name=return('1')"
+	// 3. val.(bool)     // GO_FAILPOINTS="failpoint-name=return(true)"
+	Value interface{}
+
+	// Hook is used to filter failpoint, if the hook returns false and the
+	// failpoint will not to be evaluated.
+	Hook func(ctx context.Context, fpname string) bool
+
 	failpoint struct {
 		mu       sync.RWMutex
 		t        *terms
@@ -35,10 +44,14 @@ func (fp *failpoint) Pause() {
 	<-fp.waitChan
 }
 
+// WithHook binds a hook to a new context which is based on the `ctx` parameter
 func WithHook(ctx context.Context, hook Hook) context.Context {
 	return context.WithValue(ctx, failpointCtxKey, hook)
 }
 
+// EvalContext evaluates a failpoint's value, and calls hook if the context is
+// not nil and contains hook function. It will return true and the evaluated
+// value if the failpoint is active
 func EvalContext(ctx context.Context, fpname string) (bool, Value) {
 	if ctx != nil {
 		hook := ctx.Value(failpointCtxKey)
@@ -52,6 +65,8 @@ func EvalContext(ctx context.Context, fpname string) (bool, Value) {
 	return Eval(fpname)
 }
 
+// Eval evaluates a failpoint's value, It will return true and the evaluated
+// value if the failpoint is active
 func Eval(fpname string) (bool, Value) {
 	failpoints.mu.RLock()
 	defer failpoints.mu.RUnlock()

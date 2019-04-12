@@ -64,6 +64,7 @@ func Goto(label string) {}
 // Continue will generate a continue statement the same as `failpoint.Break()`
 func Continue(label ...string) {}
 
+// Fallthrough will translate to a `fallthrough` statement
 func Fallthrough() {}
 
 // Label will generate a label statement, e.g.

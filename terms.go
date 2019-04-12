@@ -38,8 +38,7 @@ import (
 )
 
 var (
-	ErrExhausted = fmt.Errorf("failpoint: terms exhausted")
-	ErrBadParse  = fmt.Errorf("failpoint: could not parse terms")
+	ErrBadParse = fmt.Errorf("failpoint: could not parse terms")
 )
 
 // terms encodes the state for a failpoint term string (see fail(9) for examples)
