@@ -1308,7 +1308,7 @@ outer:
 		original := filepath.Join(s.path, cs.filepath)
 		content, err := ioutil.ReadFile(original)
 		c.Assert(err, IsNil)
-		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.original))
+		c.Assert(string(content), Equals, cs.original)
 	}
 }
 
@@ -1363,7 +1363,7 @@ func unittest() {
 		original := filepath.Join(s.path, cs.filepath)
 		content, err := ioutil.ReadFile(original)
 		c.Assert(err, IsNil)
-		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.original))
+		c.Assert(string(content), Equals, cs.original)
 	}
 }
 
@@ -1418,7 +1418,7 @@ func unittest() {
 		original := filepath.Join(s.path, cs.filepath)
 		content, err := ioutil.ReadFile(original)
 		c.Assert(err, IsNil)
-		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.original))
+		c.Assert(string(content), Equals, cs.original)
 	}
 }
 
@@ -1473,6 +1473,6 @@ func unittest() {
 		original := filepath.Join(s.path, cs.filepath)
 		content, err := ioutil.ReadFile(original)
 		c.Assert(err, IsNil)
-		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.original))
+		c.Assert(string(content), Equals, cs.original)
 	}
 }
