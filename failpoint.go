@@ -49,7 +49,7 @@ func WithHook(ctx context.Context, hook Hook) context.Context {
 	return context.WithValue(ctx, failpointCtxKey, hook)
 }
 
-// EvalContext evaluates a failpoint's value, will call hook if the context is
+// EvalContext evaluates a failpoint's value, and calls hook if the context is
 // not nil and contains hook function. It will return true and the evaluated
 // value if the failpoint is active
 func EvalContext(ctx context.Context, fpname string) (bool, Value) {
