@@ -35,18 +35,18 @@ import (
 	"strings"
 )
 
-type httpHandler struct{}
+type HttpHandler struct{}
 
 func serve(host string) error {
 	ln, err := net.Listen("tcp", host)
 	if err != nil {
 		return err
 	}
-	go http.Serve(ln, &httpHandler{})
+	go http.Serve(ln, &HttpHandler{})
 	return nil
 }
 
-func (*httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (*HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	key := r.RequestURI
 	if len(key) == 0 || key[0] != '/' {
 		http.Error(w, "malformed request URI", http.StatusBadRequest)
