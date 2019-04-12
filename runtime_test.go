@@ -27,13 +27,13 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	c.Assert(err, ErrorMatches, `failpoint: could not parse terms`)
 
 	ok, val = failpoint.Eval("runtime-test-2")
-	c.Assert(ok, Equals, false)
+	c.Assert(ok, IsFalse)
 
 	err = failpoint.Disable("runtime-test-1")
 	c.Assert(err, IsNil)
 
 	ok, val = failpoint.Eval("runtime-test-1")
-	c.Assert(ok, Equals, false)
+	c.Assert(ok, IsFalse)
 
 	err = failpoint.Disable("runtime-test-1")
 	c.Assert(err, ErrorMatches, `failpoint: failpoint is disabled`)
@@ -59,11 +59,9 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	c.Assert(err, IsNil)
 	start := time.Now()
 	ok, v := failpoint.Eval("gofail/testPause")
-	c.Assert(ok, Equals, false)
+	c.Assert(ok, IsFalse)
 	c.Assert(v, IsNil)
-	if time.Since(start) < 100*time.Millisecond {
-		c.Fatal("not paused")
-	}
+	c.Assert(time.Since(start), GreaterEqual, 100*time.Millisecond, Commentf("not paused"))
 	<-ch
 
 	err = failpoint.Enable("runtime-test-4", "50.0%return(5)")
@@ -88,7 +86,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 		c.Assert(val.(int), Equals, 5)
 	}
 	ok, val = failpoint.Eval("runtime-test-5")
-	c.Assert(ok, Equals, false)
+	c.Assert(ok, IsFalse)
 
 	list := failpoint.List()
 	c.Assert(list, DeepEquals, []string{"gofail/testPause", "runtime-test-1", "runtime-test-2",

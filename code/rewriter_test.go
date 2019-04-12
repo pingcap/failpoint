@@ -1515,7 +1515,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test2.go",
-			errormsg: `failpoint.Inject: closure signature illegal .*`,
+			errormsg: `failpoint\.Inject: closure signature illegal .*`,
 			original: `
 package rewriter_test
 
@@ -1535,7 +1535,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test3.go",
-			errormsg: `failpoint.Inject: closure signature illegal .*`,
+			errormsg: `failpoint\.Inject: closure signature illegal .*`,
 			original: `
 package rewriter_test
 
@@ -1555,7 +1555,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test4.go",
-			errormsg: `failpoint.Inject: expect 2 arguments but got 3`,
+			errormsg: `failpoint\.Inject: expect 2 arguments but got 3`,
 			original: `
 package rewriter_test
 
@@ -1575,7 +1575,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test5.go",
-			errormsg: `failpoint.Inject: closure signature illegal .*`,
+			errormsg: `failpoint\.Inject: closure signature illegal .*`,
 			original: `
 package rewriter_test
 
@@ -1595,7 +1595,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test5-1.go",
-			errormsg: `failpoint.Inject: closure signature illegal .*`,
+			errormsg: `failpoint\.Inject: closure signature illegal .*`,
 			original: `
 package rewriter_test
 
@@ -1615,7 +1615,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test6.go",
-			errormsg: `failpoint.Inject: first argument expect string literal but got.*`,
+			errormsg: `failpoint\.Inject: first argument expect string literal but got.*`,
 			original: `
 package rewriter_test
 
@@ -1635,7 +1635,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test7.go",
-			errormsg: `failpoint.Inject: second argument expect closure but got.*`,
+			errormsg: `failpoint\.Inject: second argument expect closure but got.*`,
 			original: `
 package rewriter_test
 
@@ -1653,7 +1653,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test1.go",
-			errormsg: `failpoint.InjectContext: expect 3 arguments but got 4`,
+			errormsg: `failpoint\.InjectContext: expect 3 arguments but got 4`,
 			original: `
 package rewriter_test
 
@@ -1673,7 +1673,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test2.go",
-			errormsg: `failpoint.InjectContext: first argument expect context but go.*`,
+			errormsg: `failpoint\.InjectContext: first argument expect context but go.*`,
 			original: `
 package rewriter_test
 
@@ -1693,7 +1693,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test3.go",
-			errormsg: `failpoint.InjectContext: second argument expect string literal but got.*`,
+			errormsg: `failpoint\.InjectContext: second argument expect string literal but got.*`,
 			original: `
 package rewriter_test
 
@@ -1713,7 +1713,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test4.go",
-			errormsg: `failpoint.InjectContext: third argument expect closure but got.*`,
+			errormsg: `failpoint\.InjectContext: third argument expect closure but got.*`,
 			original: `
 package rewriter_test
 
@@ -1731,7 +1731,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test5.go",
-			errormsg: `failpoint.InjectContext: closure signature illegal.*`,
+			errormsg: `failpoint\.InjectContext: closure signature illegal.*`,
 			original: `
 package rewriter_test
 
@@ -1749,7 +1749,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test6.go",
-			errormsg: `failpoint.InjectContext: closure signature illegal.*`,
+			errormsg: `failpoint\.InjectContext: closure signature illegal.*`,
 			original: `
 package rewriter_test
 
