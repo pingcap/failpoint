@@ -33,7 +33,7 @@ ignore:
   - "LICENSES"
   - "*_test.go"
   - "marker.go" # This file only contains empty function stub
-  - "http.go" # Ignore http request handler
+  - "http.go" # Ignore the http request handler
   - "failpoint-ctl" # Ignore the `failpoint-ctl` command line tool
   - ".git"
   - "*.yml"
