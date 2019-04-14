@@ -41,7 +41,7 @@ func (s httpSuite) TestServeHTTP(c *C) {
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
 	c.Assert(res.Code, Equals, http.StatusOK)
-	c.Assert(res.Body.String(), Matches, "return(1)")
+	c.Assert(res.Body.String(), Matches, `return\(1\)`)
 
 	req, err = http.NewRequest(http.MethodGet, "http://127.0.0.1/failpoint-name-not-exists", strings.NewReader(""))
 	c.Assert(err, IsNil)
@@ -55,7 +55,7 @@ func (s httpSuite) TestServeHTTP(c *C) {
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
 	c.Assert(res.Code, Equals, http.StatusOK)
-	c.Assert(res.Body.String(), Matches, "failpoint-name=return(1)")
+	c.Assert(res.Body.String(), Matches, `failpoint-name=return\(1\)`)
 
 	// DELETE
 	req, err = http.NewRequest(http.MethodDelete, "http://127.0.0.1/failpoint-name", strings.NewReader(""))
