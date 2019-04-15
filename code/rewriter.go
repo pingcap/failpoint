@@ -33,7 +33,7 @@ const (
 	extendPkgName   = "_curpkg_"
 	// It is an indicator to indicate the label is converted from `failpoint.Label("...")`
 	// We use an illegal suffix to avoid conflict with the user's code
-	// So `failpoint.Label(""label1")` will be converted to `label1-tmp-marker:` in expression
+	// So `failpoint.Label("label1")` will be converted to `label1-tmp-marker:` in expression
 	// rewrite and be converted to the legal form in label statement organization.
 	labelSuffix = "-tmp-marker"
 )
@@ -501,7 +501,6 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 		stmt := stmts[i]
 		if label, ok := stmt.(*ast.LabeledStmt); ok && strings.HasSuffix(label.Label.Name, labelSuffix) {
 			label.Label.Name = label.Label.Name[:len(label.Label.Name)-len(labelSuffix)]
-			fmt.Println(r.pos(label.Pos()), i, len(stmts))
 			label.Stmt = stmts[i+1]
 			stmts[i+1] = &ast.EmptyStmt{}
 		}
