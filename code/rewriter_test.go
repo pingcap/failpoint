@@ -1619,6 +1619,228 @@ labelCall:
 }
 `,
 		},
+
+		{
+			filepath: "test-index-expression.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	x := func() []int {
+		failpoint.Inject("failpoint-name", func() []int {
+			return make([]int, 1)
+		})
+		return make([]int, 10)
+	}()[func() int {
+		failpoint.Inject("failpoint-name", func() int {
+			return rand.Intn(1)
+		})
+		return rand.Intn(10)
+	}()]
+	fmt.Println(x)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	x := func() []int {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return make([]int, 1)
+		}
+		return make([]int, 10)
+	}()[func() int {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return rand.Intn(1)
+		}
+		return rand.Intn(10)
+	}()]
+	fmt.Println(x)
+}
+`,
+		},
+
+		{
+			filepath: "test-slice-expression.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	x := func() []int {
+		failpoint.Inject("failpoint-name", func() []int {
+			return make([]int, 1)
+		})
+		return make([]int, 10)
+	}()[func() int {
+		failpoint.Inject("failpoint-name", func() int {
+			return rand.Intn(1)
+		})
+		return rand.Intn(10)
+	}():func() int {
+		failpoint.Inject("failpoint-name", func() int {
+			return rand.Intn(1)
+		})
+		return rand.Intn(10)
+	}()]
+	fmt.Println(x)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	x := func() []int {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return make([]int, 1)
+		}
+		return make([]int, 10)
+	}()[func() int {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return rand.Intn(1)
+		}
+		return rand.Intn(10)
+	}():func() int {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return rand.Intn(1)
+		}
+		return rand.Intn(10)
+	}()]
+	fmt.Println(x)
+}
+`,
+		},
+
+		{
+			filepath: "test-star-expression.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		A string
+	}
+	x := *func() *X {
+		failpoint.Inject("failpoint-name", func() *X {
+			return &X{A: "from-failpoint"}
+		})
+		return &X{A: "normal path"}
+	}()
+	fmt.Println(x.A)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		A string
+	}
+	x := *func() *X {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return &X{A: "from-failpoint"}
+		}
+		return &X{A: "normal path"}
+	}()
+	fmt.Println(x.A)
+}
+`,
+		},
+
+		{
+			filepath: "test-kv-expression.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		A string
+	}
+	x := X{
+		A: func() string {
+			failpoint.Inject("failpoint-name", func() string {
+				return "from-failpoint"
+			})
+			return "from-normal-path"
+		}(),
+	}
+	fmt.Println(x.A)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		A string
+	}
+	x := X{
+		A: func() string {
+			if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				return "from-failpoint"
+			}
+			return "from-normal-path"
+		}(),
+	}
+	fmt.Println(x.A)
+}
+`,
+		},
 	}
 
 	// Create temp files

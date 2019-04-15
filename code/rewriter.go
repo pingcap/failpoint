@@ -122,10 +122,57 @@ func (r *Rewriter) rewriteIfStmt(v *ast.IfStmt) error {
 }
 
 func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
+	if expr == nil {
+		return nil
+	}
+
 	switch ex := expr.(type) {
+	case *ast.BadExpr,
+		*ast.Ident,
+		*ast.Ellipsis,
+		*ast.BasicLit,
+		*ast.ArrayType,
+		*ast.StructType,
+		*ast.FuncType,
+		*ast.InterfaceType,
+		*ast.MapType,
+		*ast.ChanType,
+		*ast.SelectorExpr:
+	// expressions that can not inject failpoint
+
+	case *ast.IndexExpr:
+		// func()[]int {}()[func()int{}()]
+		if err := r.rewriteExpr(ex.X); err != nil {
+			return err
+		}
+		return r.rewriteExpr(ex.Index)
+
+	case *ast.SliceExpr:
+		// func()[]int {}()[func()int{}():func()int{}()]
+		if err := r.rewriteExpr(ex.Low); err != nil {
+			return err
+		}
+		if err := r.rewriteExpr(ex.High); err != nil {
+			return err
+		}
+		if err := r.rewriteExpr(ex.Max); err != nil {
+			return err
+		}
+		return r.rewriteExpr(ex.X)
+
 	case *ast.FuncLit:
 		// return func(){...},
 		return r.rewriteFuncLit(ex)
+
+	case *ast.CompositeLit:
+		if err := r.rewriteExpr(ex.Type); err != nil {
+			return err
+		}
+		for _, elt := range ex.Elts {
+			if err := r.rewriteExpr(elt); err != nil {
+				return err
+			}
+		}
 
 	case *ast.CallExpr:
 		// return func() int {...}()
@@ -144,6 +191,10 @@ func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
 				}
 			}
 		}
+
+	case *ast.StarExpr:
+		// *func() *T{}()
+		return r.rewriteExpr(ex.X)
 
 	case *ast.UnaryExpr:
 		return r.rewriteExpr(ex.X)
@@ -164,8 +215,13 @@ func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
 
 	case *ast.TypeAssertExpr:
 		return r.rewriteExpr(ex.X)
-	}
 
+	case *ast.KeyValueExpr:
+		return r.rewriteExpr(ex.Value)
+
+	default:
+		fmt.Printf("unspport expression: %T\n", expr)
+	}
 	return nil
 }
 
