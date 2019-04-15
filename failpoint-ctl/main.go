@@ -65,7 +65,7 @@ func main() {
 			rewritePath = append(rewritePath, path)
 			rewriter := code.NewRewriter(path)
 			if err := rewriter.Rewrite(); err != nil {
-				fmt.Println("Error occurred in rewriting path " + path + " with " + err.Error())
+				fmt.Println("Rewrite error " + err.Error())
 				errOccurred = true
 				break
 			}
@@ -91,7 +91,7 @@ func restoreFiles(paths []string) {
 		restorer := code.NewRestorer(paths[i])
 		err := restorer.Restore()
 		if err != nil {
-			fmt.Println("Error occurred in restore " + paths[i] + " with " + err.Error())
+			fmt.Println("Restore error " + err.Error())
 		}
 	}
 }

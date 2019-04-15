@@ -1445,6 +1445,402 @@ func unittest() {
 }
 `,
 		},
+
+		{
+			filepath: "test-send-statement.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	func() chan struct{} {
+		failpoint.Inject("failpoint-name", func() chan struct{}{
+			return make(chan struct{}, 1)
+		})
+		return make(chan struct{}, 1)
+	}() <- func() struct{} {
+		failpoint.Inject("failpoint-name", func() struct{} {
+			return struct{}{}
+		})
+		return struct{}{}
+	}()
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	func() chan struct{} {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return make(chan struct{}, 1)
+		}
+		return make(chan struct{}, 1)
+	}() <- func() struct{} {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return struct{}{}
+		}
+		return struct{}{}
+	}()
+}
+`,
+		},
+
+		{
+			filepath: "test-label-statement.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	labelSend:
+	func() chan struct{} {
+		failpoint.Inject("failpoint-name", func() chan struct{} {
+			return make(chan struct{}, 1)
+		})
+		return make(chan struct{}, 1)
+	}() <- func() struct{} {
+		failpoint.Inject("failpoint-name", func() struct{} {
+			return struct{}{}
+		})
+		return struct{}{}
+	}()
+	if rand.Intn(10) > 5 {
+		goto labelSend
+	}
+
+	switch rand.Intn(10) {
+	case 1:
+		goto labelFor
+	case 2:
+		goto labelCall
+	}
+
+labelFor:
+	for i := range []int{10, 20} {
+		if i%rand.Intn(2) == i {
+		labelIf:
+			if rand.Intn(1000) > 500 {
+				failpoint.Inject("failpoint-name", func() {
+					fmt.Println("output in failpoint")
+				})
+				goto labelIf
+			}
+			goto labelFor
+		}
+		if rand.Intn(20) > 10 {
+			goto labelBreak
+		}
+	labelBreak:
+		break
+	}
+
+labelCall:
+	failpoint.Inject("failpoint-name", func() {
+		fmt.Println("output in failpoint")
+	})
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+labelSend:
+	func() chan struct{} {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return make(chan struct{}, 1)
+		}
+		return make(chan struct{}, 1)
+	}() <- func() struct{} {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return struct{}{}
+		}
+		return struct{}{}
+	}()
+	if rand.Intn(10) > 5 {
+		goto labelSend
+	}
+
+	switch rand.Intn(10) {
+	case 1:
+		goto labelFor
+	case 2:
+		goto labelCall
+	}
+
+labelFor:
+	for i := range []int{10, 20} {
+		if i%rand.Intn(2) == i {
+		labelIf:
+			if rand.Intn(1000) > 500 {
+				if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+					fmt.Println("output in failpoint")
+				}
+				goto labelIf
+			}
+			goto labelFor
+		}
+		if rand.Intn(20) > 10 {
+			goto labelBreak
+		}
+	labelBreak:
+		break
+	}
+
+labelCall:
+	if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		fmt.Println("output in failpoint")
+	}
+}
+`,
+		},
+
+		{
+			filepath: "test-index-expression.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	x := func() []int {
+		failpoint.Inject("failpoint-name", func() []int {
+			return make([]int, 1)
+		})
+		return make([]int, 10)
+	}()[func() int {
+		failpoint.Inject("failpoint-name", func() int {
+			return rand.Intn(1)
+		})
+		return rand.Intn(10)
+	}()]
+	fmt.Println(x)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	x := func() []int {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return make([]int, 1)
+		}
+		return make([]int, 10)
+	}()[func() int {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return rand.Intn(1)
+		}
+		return rand.Intn(10)
+	}()]
+	fmt.Println(x)
+}
+`,
+		},
+
+		{
+			filepath: "test-slice-expression.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	x := func() []int {
+		failpoint.Inject("failpoint-name", func() []int {
+			return make([]int, 1)
+		})
+		return make([]int, 10)
+	}()[func() int {
+		failpoint.Inject("failpoint-name", func() int {
+			return rand.Intn(1)
+		})
+		return rand.Intn(10)
+	}():func() int {
+		failpoint.Inject("failpoint-name", func() int {
+			return rand.Intn(1)
+		})
+		return rand.Intn(10)
+	}()]
+	fmt.Println(x)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	x := func() []int {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return make([]int, 1)
+		}
+		return make([]int, 10)
+	}()[func() int {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return rand.Intn(1)
+		}
+		return rand.Intn(10)
+	}():func() int {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return rand.Intn(1)
+		}
+		return rand.Intn(10)
+	}()]
+	fmt.Println(x)
+}
+`,
+		},
+
+		{
+			filepath: "test-star-expression.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		A string
+	}
+	x := *func() *X {
+		failpoint.Inject("failpoint-name", func() *X {
+			return &X{A: "from-failpoint"}
+		})
+		return &X{A: "normal path"}
+	}()
+	fmt.Println(x.A)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		A string
+	}
+	x := *func() *X {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return &X{A: "from-failpoint"}
+		}
+		return &X{A: "normal path"}
+	}()
+	fmt.Println(x.A)
+}
+`,
+		},
+
+		{
+			filepath: "test-kv-expression.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		A string
+	}
+	x := X{
+		A: func() string {
+			failpoint.Inject("failpoint-name", func() string {
+				return "from-failpoint"
+			})
+			return "from-normal-path"
+		}(),
+	}
+	fmt.Println(x.A)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		A string
+	}
+	x := X{
+		A: func() string {
+			if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				return "from-failpoint"
+			}
+			return "from-normal-path"
+		}(),
+	}
+	fmt.Println(x.A)
+}
+`,
+		},
 	}
 
 	// Create temp files
@@ -1495,7 +1891,7 @@ func (s *rewriterSuite) TestRewriteBad(c *C) {
 
 		{
 			filepath: "bad-basic-test.go",
-			errormsg: `failpoint\.Inject: invalid signature with type.*`,
+			errormsg: `failpoint\.Inject: invalid signature.*`,
 			original: `
 package rewriter_test
 
@@ -1555,7 +1951,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test4.go",
-			errormsg: `failpoint\.Inject: expect 2 arguments but got 3`,
+			errormsg: `failpoint\.Inject: expect 2 arguments but got 3.*`,
 			original: `
 package rewriter_test
 
@@ -1615,7 +2011,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test6.go",
-			errormsg: `failpoint\.Inject: first argument expect string literal but got.*`,
+			errormsg: `failpoint\.Inject: first argument expect string literal in.*`,
 			original: `
 package rewriter_test
 
@@ -1635,7 +2031,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test7.go",
-			errormsg: `failpoint\.Inject: second argument expect closure but got.*`,
+			errormsg: `failpoint\.Inject: second argument expect closure in.*`,
 			original: `
 package rewriter_test
 
@@ -1653,7 +2049,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test1.go",
-			errormsg: `failpoint\.InjectContext: expect 3 arguments but got 4`,
+			errormsg: `failpoint\.InjectContext: expect 3 arguments but got 4.*`,
 			original: `
 package rewriter_test
 
@@ -1673,7 +2069,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test2.go",
-			errormsg: `failpoint\.InjectContext: first argument expect context but go.*`,
+			errormsg: `failpoint\.InjectContext: first argument expect context in.*`,
 			original: `
 package rewriter_test
 
@@ -1693,7 +2089,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test3.go",
-			errormsg: `failpoint\.InjectContext: second argument expect string literal but got.*`,
+			errormsg: `failpoint\.InjectContext: second argument expect string literal in.*`,
 			original: `
 package rewriter_test
 
@@ -1713,7 +2109,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test4.go",
-			errormsg: `failpoint\.InjectContext: third argument expect closure but got.*`,
+			errormsg: `failpoint\.InjectContext: third argument expect closure in.*`,
 			original: `
 package rewriter_test
 
