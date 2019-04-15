@@ -123,7 +123,10 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	ok, val = failpoint.Eval("runtime-test-6")
 	c.Assert(ok, IsFalse)
 
-	ok, val = failpoint.Eval("failpoint-env")
+	ok, val = failpoint.Eval("failpoint-env1")
 	c.Assert(ok, IsTrue)
 	c.Assert(val.(int), Equals, 10)
+	ok, val = failpoint.Eval("failpoint-env2")
+	c.Assert(ok, IsTrue)
+	c.Assert(val.(bool), Equals, true)
 }

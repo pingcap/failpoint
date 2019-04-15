@@ -121,10 +121,17 @@ func (s *httpSuite) TestServeHTTP(c *C) {
 	c.Assert(res.Body.String(), Contains, "Method not allowed")
 
 	// Test environment variable injection
-	resp, err := http.Get("http://127.0.0.1:23389/failpoint-env")
+	resp, err := http.Get("http://127.0.0.1:23389/failpoint-env1")
 	c.Assert(err, IsNil)
 	c.Assert(resp.StatusCode, Equals, http.StatusOK)
 	body, err := ioutil.ReadAll(resp.Body)
 	c.Assert(err, IsNil)
 	c.Assert(string(body), Contains, "return(10)")
+
+	resp, err = http.Get("http://127.0.0.1:23389/failpoint-env2")
+	c.Assert(err, IsNil)
+	c.Assert(resp.StatusCode, Equals, http.StatusOK)
+	body, err = ioutil.ReadAll(resp.Body)
+	c.Assert(err, IsNil)
+	c.Assert(string(body), Contains, "return(true)")
 }
