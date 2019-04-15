@@ -3,6 +3,7 @@ package failpoint_test
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -118,4 +119,12 @@ func (s *httpSuite) TestServeHTTP(c *C) {
 	handler.ServeHTTP(res, req)
 	c.Assert(res.Code, Equals, http.StatusMethodNotAllowed)
 	c.Assert(res.Body.String(), Contains, "Method not allowed")
+
+	// Test environment variable injection
+	resp, err := http.Get("http://127.0.0.1:23389/failpoint-env")
+	c.Assert(err, IsNil)
+	c.Assert(resp.StatusCode, Equals, http.StatusOK)
+	body, err := ioutil.ReadAll(resp.Body)
+	c.Assert(err, IsNil)
+	c.Assert(string(body), Contains, "return(10)")
 }

@@ -97,4 +97,33 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	c.Assert(fps, HasKey, "runtime-test-3")
 	c.Assert(fps, HasKey, "runtime-test-4")
 	c.Assert(fps, HasKey, "runtime-test-5")
+
+	err = failpoint.Enable("runtime-test-6", "50*return(5)->1*return(true)->1*return(false)->10*return(20)")
+	c.Assert(err, IsNil)
+	// 50*return(5)
+	for i := 0; i < 50; i++ {
+		ok, val = failpoint.Eval("runtime-test-6")
+		c.Assert(ok, Equals, true)
+		c.Assert(val.(int), Equals, 5)
+	}
+	// 1*return(true)
+	ok, val = failpoint.Eval("runtime-test-6")
+	c.Assert(ok, IsTrue)
+	c.Assert(val.(bool), Equals, true)
+	// 1*return(false)
+	ok, val = failpoint.Eval("runtime-test-6")
+	c.Assert(ok, IsTrue)
+	c.Assert(val.(bool), Equals, false)
+	// 10*return(20)
+	for i := 0; i < 10; i++ {
+		ok, val = failpoint.Eval("runtime-test-6")
+		c.Assert(ok, Equals, true)
+		c.Assert(val.(int), Equals, 20)
+	}
+	ok, val = failpoint.Eval("runtime-test-6")
+	c.Assert(ok, IsFalse)
+
+	ok, val = failpoint.Eval("failpoint-env")
+	c.Assert(ok, IsTrue)
+	c.Assert(val.(int), Equals, 10)
 }
