@@ -103,7 +103,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	// 50*return(5)
 	for i := 0; i < 50; i++ {
 		ok, val = failpoint.Eval("runtime-test-6")
-		c.Assert(ok, Equals, true)
+		c.Assert(ok, IsTrue)
 		c.Assert(val.(int), Equals, 5)
 	}
 	// 1*return(true)
@@ -117,7 +117,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	// 10*return(20)
 	for i := 0; i < 10; i++ {
 		ok, val = failpoint.Eval("runtime-test-6")
-		c.Assert(ok, Equals, true)
+		c.Assert(ok, IsTrue)
 		c.Assert(val.(int), Equals, 20)
 	}
 	ok, val = failpoint.Eval("runtime-test-6")

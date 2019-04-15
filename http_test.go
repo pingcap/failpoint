@@ -21,7 +21,7 @@ var _ = Suite(&httpSuite{})
 
 type httpSuite struct{}
 
-type hasPrefix struct {
+type contains struct {
 	*CheckerInfo
 }
 
