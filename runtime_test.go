@@ -88,7 +88,45 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	ok, val = failpoint.Eval("runtime-test-5")
 	c.Assert(ok, IsFalse)
 
-	list := failpoint.List()
-	c.Assert(list, DeepEquals, []string{"gofail/testPause", "runtime-test-1", "runtime-test-2",
-		"runtime-test-3", "runtime-test-4", "runtime-test-5"})
+	fps := map[string]struct{}{}
+	for _, fp := range failpoint.List() {
+		fps[fp] = struct{}{}
+	}
+	c.Assert(fps, HasKey, "runtime-test-1")
+	c.Assert(fps, HasKey, "runtime-test-2")
+	c.Assert(fps, HasKey, "runtime-test-3")
+	c.Assert(fps, HasKey, "runtime-test-4")
+	c.Assert(fps, HasKey, "runtime-test-5")
+
+	err = failpoint.Enable("runtime-test-6", "50*return(5)->1*return(true)->1*return(false)->10*return(20)")
+	c.Assert(err, IsNil)
+	// 50*return(5)
+	for i := 0; i < 50; i++ {
+		ok, val = failpoint.Eval("runtime-test-6")
+		c.Assert(ok, IsTrue)
+		c.Assert(val.(int), Equals, 5)
+	}
+	// 1*return(true)
+	ok, val = failpoint.Eval("runtime-test-6")
+	c.Assert(ok, IsTrue)
+	c.Assert(val.(bool), IsTrue)
+	// 1*return(false)
+	ok, val = failpoint.Eval("runtime-test-6")
+	c.Assert(ok, IsTrue)
+	c.Assert(val.(bool), IsFalse)
+	// 10*return(20)
+	for i := 0; i < 10; i++ {
+		ok, val = failpoint.Eval("runtime-test-6")
+		c.Assert(ok, IsTrue)
+		c.Assert(val.(int), Equals, 20)
+	}
+	ok, val = failpoint.Eval("runtime-test-6")
+	c.Assert(ok, IsFalse)
+
+	ok, val = failpoint.Eval("failpoint-env1")
+	c.Assert(ok, IsTrue)
+	c.Assert(val.(int), Equals, 10)
+	ok, val = failpoint.Eval("failpoint-env2")
+	c.Assert(ok, IsTrue)
+	c.Assert(val.(bool), IsTrue)
 }

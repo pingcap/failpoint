@@ -79,12 +79,6 @@ func (r *Rewriter) rewriteAssign(v *ast.AssignStmt) error {
 	//     })
 	// }
 	for _, v := range v.Rhs {
-		if fn, ok := v.(*ast.FuncLit); ok {
-			err := r.rewriteFuncLit(fn)
-			if err != nil {
-				return err
-			}
-		}
 		err := r.rewriteExpr(v)
 		if err != nil {
 			return err

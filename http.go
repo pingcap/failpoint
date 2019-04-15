@@ -47,7 +47,7 @@ func serve(host string) error {
 }
 
 func (*HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	key := r.RequestURI
+	key := r.URL.Path
 	if len(key) == 0 || key[0] != '/' {
 		http.Error(w, "malformed request URI", http.StatusBadRequest)
 		return

@@ -2232,6 +2232,93 @@ func unittest() {
 }
 `,
 		},
+
+		{
+			filepath: "bad-case-func-literal.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	x = func() {
+		failpoint.Goto("11", "22")
+	}
+	x()
+}
+`,
+		},
+
+		{
+			filepath: "bad-case-if-stmt-init.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	if x := func() int {
+		failpoint.Goto("11", "22")
+		return 10
+	}; x() > rand.Intn(20) {
+		failpoint.Goto("11", "22")
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-case-if-stmt-cond.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	if x := rand.Intn(20); x > func() int {
+		failpoint.Goto("11", "22")
+		return 10
+	}() {
+		failpoint.Goto("11", "22")
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-case-if-stmt-body.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	if x := rand.Intn(20); x > 10 {
+		failpoint.Goto("11", "22")
+	}
+}
+`,
+		},
 	}
 
 	// Create temp files
