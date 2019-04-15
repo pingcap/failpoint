@@ -31,6 +31,11 @@ const (
 	evalFunction    = "Eval"
 	evalCtxFunction = "EvalContext"
 	extendPkgName   = "_curpkg_"
+	// It is an indicator to indicate the label is converted from `failpoint.Label("...")`
+	// We use an illegal suffix to avoid conflict with the user's code
+	// So `failpoint.Label(""label1")` will be converted to `label1-tmp-marker:` in expression
+	// rewrite and be converted to the legal form in label statement organization.
+	labelSuffix = "-tmp-marker"
 )
 
 // Rewriter represents a rewriting tool for converting the failpoint marker functions to
@@ -40,6 +45,7 @@ type Rewriter struct {
 	rewriteDir    string
 	currentPath   string
 	currentFile   *ast.File
+	currsetFset   *token.FileSet
 	failpointName string
 	rewritten     bool
 }
@@ -51,27 +57,13 @@ func NewRewriter(path string) *Rewriter {
 	}
 }
 
-func (r *Rewriter) rewriteFuncLit(fn *ast.FuncLit) error {
-	return r.rewriteStmts(fn.Body.List)
+func (r *Rewriter) pos(pos token.Pos) string {
+	p := r.currsetFset.Position(pos)
+	return fmt.Sprintf("%s:%d", p.Filename, p.Line)
 }
 
-func (r *Rewriter) rewriteCallExpr(call *ast.CallExpr) error {
-	if fn, ok := call.Fun.(*ast.FuncLit); ok {
-		err := r.rewriteFuncLit(fn)
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, arg := range call.Args {
-		if fn, ok := arg.(*ast.FuncLit); ok {
-			err := r.rewriteFuncLit(fn)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+func (r *Rewriter) rewriteFuncLit(fn *ast.FuncLit) error {
+	return r.rewriteStmts(fn.Body.List)
 }
 
 func (r *Rewriter) rewriteAssign(v *ast.AssignStmt) error {
@@ -93,59 +85,7 @@ func (r *Rewriter) rewriteAssign(v *ast.AssignStmt) error {
 				return err
 			}
 		}
-		if call, ok := v.(*ast.CallExpr); ok {
-			err := r.rewriteCallExpr(call)
-			if err != nil {
-				return err
-			}
-		}
-		if sendOrRecv, ok := v.(*ast.UnaryExpr); ok {
-			if callExpr, ok2 := sendOrRecv.X.(*ast.CallExpr); ok2 {
-				err := r.rewriteCallExpr(callExpr)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func (r *Rewriter) rewriteBinaryExpr(expr *ast.BinaryExpr) error {
-	// a && func() bool {...} ()
-	// func() bool {...} () && a
-	if fn, ok := expr.X.(*ast.CallExpr); ok {
-		err := r.rewriteCallExpr(fn)
-		if err != nil {
-			return err
-		}
-	}
-	if fn, ok := expr.Y.(*ast.CallExpr); ok {
-		err := r.rewriteCallExpr(fn)
-		if err != nil {
-			return err
-		}
-	}
-	// func() bool {...} () && func() bool {...} () && a
-	// func() bool {...} () && a && func() bool {...} () && a
-	if binaryExpr, ok := expr.X.(*ast.BinaryExpr); ok {
-		err := r.rewriteBinaryExpr(binaryExpr)
-		if err != nil {
-			return err
-		}
-	}
-	if binaryExpr, ok := expr.Y.(*ast.BinaryExpr); ok {
-		err := r.rewriteBinaryExpr(binaryExpr)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (r *Rewriter) rewriteTypeAssertExpr(expr *ast.TypeAssertExpr) error {
-	if fn, ok := expr.X.(*ast.CallExpr); ok {
-		err := r.rewriteCallExpr(fn)
+		err := r.rewriteExpr(v)
 		if err != nil {
 			return err
 		}
@@ -161,12 +101,11 @@ func (r *Rewriter) rewriteIfStmt(v *ast.IfStmt) error {
 			return err
 		}
 	}
-	if binaryExpr, ok := v.Cond.(*ast.BinaryExpr); ok {
-		err := r.rewriteBinaryExpr(binaryExpr)
-		if err != nil {
-			return err
-		}
+
+	if err := r.rewriteExpr(v.Cond); err != nil {
+		return err
 	}
+
 	err := r.rewriteStmts(v.Body.List)
 	if err != nil {
 		return err
@@ -182,21 +121,59 @@ func (r *Rewriter) rewriteIfStmt(v *ast.IfStmt) error {
 	return nil
 }
 
-func (r *Rewriter) rewriteExprs(exprs []ast.Expr) error {
-	for _, expr := range exprs {
+func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
+	switch ex := expr.(type) {
+	case *ast.FuncLit:
 		// return func(){...},
-		if fn, ok := expr.(*ast.FuncLit); ok {
+		return r.rewriteFuncLit(ex)
+
+	case *ast.CallExpr:
+		// return func() int {...}()
+		if fn, ok := ex.Fun.(*ast.FuncLit); ok {
 			err := r.rewriteFuncLit(fn)
 			if err != nil {
 				return err
 			}
 		}
-		// return func() int {...}()
-		if fn, ok := expr.(*ast.CallExpr); ok {
-			err := r.rewriteCallExpr(fn)
-			if err != nil {
-				return err
+
+		for _, arg := range ex.Args {
+			if fn, ok := arg.(*ast.FuncLit); ok {
+				err := r.rewriteFuncLit(fn)
+				if err != nil {
+					return err
+				}
 			}
+		}
+
+	case *ast.UnaryExpr:
+		return r.rewriteExpr(ex.X)
+
+	case *ast.BinaryExpr:
+		// a && func() bool {...} ()
+		// func() bool {...} () && a
+		// func() bool {...} () && func() bool {...} () && a
+		// func() bool {...} () && a && func() bool {...} () && a
+		err := r.rewriteExpr(ex.X)
+		if err != nil {
+			return err
+		}
+		return r.rewriteExpr(ex.Y)
+
+	case *ast.ParenExpr:
+		return r.rewriteExpr(ex.X)
+
+	case *ast.TypeAssertExpr:
+		return r.rewriteExpr(ex.X)
+	}
+
+	return nil
+}
+
+func (r *Rewriter) rewriteExprs(exprs []ast.Expr) error {
+	for _, expr := range exprs {
+		err := r.rewriteExpr(expr)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -282,7 +259,7 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 		case *ast.GoStmt:
 			// go func() {...}()
 			// go func(fn) {...}(func(){...})
-			err := r.rewriteCallExpr(v.Call)
+			err := r.rewriteExpr(v.Call)
 			if err != nil {
 				return err
 			}
@@ -290,7 +267,7 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 		case *ast.DeferStmt:
 			// defer func() {...}()
 			// defer func(fn) {...}(func(){...})
-			err := r.rewriteCallExpr(v.Call)
+			err := r.rewriteExpr(v.Call)
 			if err != nil {
 				return err
 			}
@@ -338,17 +315,11 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 					return err
 				}
 			}
-			if binaryExpr, ok := v.Tag.(*ast.BinaryExpr); ok {
-				err := r.rewriteBinaryExpr(binaryExpr)
-				if err != nil {
-					return err
-				}
-			} else if callExpr, ok := v.Tag.(*ast.CallExpr); ok {
-				err := r.rewriteCallExpr(callExpr)
-				if err != nil {
-					return err
-				}
+
+			if err := r.rewriteExpr(v.Tag); err != nil {
+				return err
 			}
+
 			err := r.rewriteStmts(v.Body.List)
 			if err != nil {
 				return err
@@ -370,12 +341,9 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 					}
 				}
 				if expr, ok := v.Comm.(*ast.ExprStmt); ok {
-					sendOrRecv := expr.X.(*ast.UnaryExpr)
-					if callExpr, ok2 := sendOrRecv.X.(*ast.CallExpr); ok2 {
-						err := r.rewriteCallExpr(callExpr)
-						if err != nil {
-							return err
-						}
+					err := r.rewriteExpr(expr.X)
+					if err != nil {
+						return err
 					}
 				}
 			}
@@ -402,7 +370,7 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 				}
 			}
 			if v.Cond != nil {
-				err := r.rewriteBinaryExpr(v.Cond.(*ast.BinaryExpr))
+				err := r.rewriteExpr(v.Cond)
 				if err != nil {
 					return err
 				}
@@ -422,11 +390,8 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			}
 
 		case *ast.RangeStmt:
-			if callExpr, ok := v.X.(*ast.CallExpr); ok {
-				err := r.rewriteCallExpr(callExpr)
-				if err != nil {
-					return err
-				}
+			if err := r.rewriteExpr(v.X); err != nil {
+				return err
 			}
 			err := r.rewriteStmts(v.Body.List)
 			if err != nil {
@@ -442,7 +407,7 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 					}
 				}
 				if expr, ok := v.Assign.(*ast.ExprStmt); ok {
-					err := r.rewriteTypeAssertExpr(expr.X.(*ast.TypeAssertExpr))
+					err := r.rewriteExpr(expr.X)
 					if err != nil {
 						return err
 					}
@@ -453,15 +418,34 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 				return err
 			}
 
+		case *ast.SendStmt:
+			err := r.rewriteExprs([]ast.Expr{v.Chan, v.Value})
+			if err != nil {
+				return err
+			}
+
+		case *ast.LabeledStmt:
+			stmts := []ast.Stmt{v.Stmt}
+			err := r.rewriteStmts(stmts)
+			if err != nil {
+				return err
+			}
+			v.Stmt = stmts[0]
+
+		case *ast.BranchStmt:
+			// ignore keyword token (BREAK, CONTINUE, GOTO, FALLTHROUGH)
+
 		default:
-			fmt.Printf("unsupport statement: %T\n", v)
+			fmt.Printf("unsupport statement: %T in %s\n", v, r.pos(v.Pos()))
 		}
 	}
 
 	// Label statement must ahead of for loop
 	for i := 0; i < len(stmts); i++ {
 		stmt := stmts[i]
-		if label, ok := stmt.(*ast.LabeledStmt); ok {
+		if label, ok := stmt.(*ast.LabeledStmt); ok && strings.HasSuffix(label.Label.Name, labelSuffix) {
+			label.Label.Name = label.Label.Name[:len(label.Label.Name)-len(labelSuffix)]
+			fmt.Println(r.pos(label.Pos()), i, len(stmts))
 			label.Stmt = stmts[i+1]
 			stmts[i+1] = &ast.EmptyStmt{}
 		}
@@ -476,7 +460,7 @@ func (r *Rewriter) rewriteFuncDecl(fn *ast.FuncDecl) error {
 func (r *Rewriter) rewriteFile(path string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			err = fmt.Errorf("%v\n%s", e, debug.Stack())
+			err = fmt.Errorf("%s %v\n%s", r.currentPath, e, debug.Stack())
 		}
 	}()
 	fset := token.NewFileSet()
@@ -489,6 +473,7 @@ func (r *Rewriter) rewriteFile(path string) (err error) {
 	}
 	r.currentPath = path
 	r.currentFile = file
+	r.currsetFset = fset
 
 	var failpointImport *ast.ImportSpec
 	for _, imp := range file.Imports {

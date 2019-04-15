@@ -256,7 +256,7 @@ func (r *Rewriter) rewriteLabel(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	label = strings.Trim(label, "`\"")
 	stmt := &ast.LabeledStmt{
 		Colon: call.Pos(),
-		Label: ast.NewIdent(label),
+		Label: ast.NewIdent(label + labelSuffix), // It's a trick here
 	}
 	return true, stmt, nil
 }

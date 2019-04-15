@@ -1445,6 +1445,180 @@ func unittest() {
 }
 `,
 		},
+
+		{
+			filepath: "test-send-statement.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	func() chan struct{} {
+		failpoint.Inject("failpoint-name", func() chan struct{}{
+			return make(chan struct{}, 1)
+		})
+		return make(chan struct{}, 1)
+	}() <- func() struct{} {
+		failpoint.Inject("failpoint-name", func() struct{} {
+			return struct{}{}
+		})
+		return struct{}{}
+	}()
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	func() chan struct{} {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return make(chan struct{}, 1)
+		}
+		return make(chan struct{}, 1)
+	}() <- func() struct{} {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return struct{}{}
+		}
+		return struct{}{}
+	}()
+}
+`,
+		},
+
+		{
+			filepath: "test-label-statement.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	labelSend:
+	func() chan struct{} {
+		failpoint.Inject("failpoint-name", func() chan struct{} {
+			return make(chan struct{}, 1)
+		})
+		return make(chan struct{}, 1)
+	}() <- func() struct{} {
+		failpoint.Inject("failpoint-name", func() struct{} {
+			return struct{}{}
+		})
+		return struct{}{}
+	}()
+	if rand.Intn(10) > 5 {
+		goto labelSend
+	}
+
+	switch rand.Intn(10) {
+	case 1:
+		goto labelFor
+	case 2:
+		goto labelCall
+	}
+
+labelFor:
+	for i := range []int{10, 20} {
+		if i%rand.Intn(2) == i {
+		labelIf:
+			if rand.Intn(1000) > 500 {
+				failpoint.Inject("failpoint-name", func() {
+					fmt.Println("output in failpoint")
+				})
+				goto labelIf
+			}
+			goto labelFor
+		}
+		if rand.Intn(20) > 10 {
+			goto labelBreak
+		}
+	labelBreak:
+		break
+	}
+
+labelCall:
+	failpoint.Inject("failpoint-name", func() {
+		fmt.Println("output in failpoint")
+	})
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	"math/rand"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+labelSend:
+	func() chan struct{} {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return make(chan struct{}, 1)
+		}
+		return make(chan struct{}, 1)
+	}() <- func() struct{} {
+		if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return struct{}{}
+		}
+		return struct{}{}
+	}()
+	if rand.Intn(10) > 5 {
+		goto labelSend
+	}
+
+	switch rand.Intn(10) {
+	case 1:
+		goto labelFor
+	case 2:
+		goto labelCall
+	}
+
+labelFor:
+	for i := range []int{10, 20} {
+		if i%rand.Intn(2) == i {
+		labelIf:
+			if rand.Intn(1000) > 500 {
+				if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+					fmt.Println("output in failpoint")
+				}
+				goto labelIf
+			}
+			goto labelFor
+		}
+		if rand.Intn(20) > 10 {
+			goto labelBreak
+		}
+	labelBreak:
+		break
+	}
+
+labelCall:
+	if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		fmt.Println("output in failpoint")
+	}
+}
+`,
+		},
 	}
 
 	// Create temp files
