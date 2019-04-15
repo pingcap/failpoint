@@ -2,7 +2,6 @@ package failpoint_test
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -25,18 +24,18 @@ type contains struct {
 	*CheckerInfo
 }
 
-var Contains Checker = &hasPrefix{
+var Contains Checker = &contains{
 	&CheckerInfo{Name: "Contains", Params: []string{"obtained", "expected"}},
 }
 
-func (checker *hasPrefix) Check(params []interface{}, names []string) (result bool, error string) {
-	defer func() {
-		if v := recover(); v != nil {
-			result = false
-			error = fmt.Sprint(v)
-		}
-	}()
-	return strings.Contains(params[0].(string), params[1].(string)), ""
+func (checker *contains) Check(params []interface{}, names []string) (result bool, error string) {
+	param1, ok1 := params[0].(string)
+	param2, ok2 := params[1].(string)
+	if !ok1 || !ok2 {
+		return false, "Argument to " + checker.Name + " must be string"
+	}
+
+	return strings.Contains(param1, param2), ""
 }
 
 type badReader struct{}
