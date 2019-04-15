@@ -1669,7 +1669,7 @@ func (s *rewriterSuite) TestRewriteBad(c *C) {
 
 		{
 			filepath: "bad-basic-test.go",
-			errormsg: `failpoint\.Inject: invalid signature with type.*`,
+			errormsg: `failpoint\.Inject: invalid signature.*`,
 			original: `
 package rewriter_test
 
@@ -1729,7 +1729,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test4.go",
-			errormsg: `failpoint\.Inject: expect 2 arguments but got 3`,
+			errormsg: `failpoint\.Inject: expect 2 arguments but got 3.*`,
 			original: `
 package rewriter_test
 
@@ -1789,7 +1789,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test6.go",
-			errormsg: `failpoint\.Inject: first argument expect string literal but got.*`,
+			errormsg: `failpoint\.Inject: first argument expect string literal in.*`,
 			original: `
 package rewriter_test
 
@@ -1809,7 +1809,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test7.go",
-			errormsg: `failpoint\.Inject: second argument expect closure but got.*`,
+			errormsg: `failpoint\.Inject: second argument expect closure in.*`,
 			original: `
 package rewriter_test
 
@@ -1827,7 +1827,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test1.go",
-			errormsg: `failpoint\.InjectContext: expect 3 arguments but got 4`,
+			errormsg: `failpoint\.InjectContext: expect 3 arguments but got 4.*`,
 			original: `
 package rewriter_test
 
@@ -1847,7 +1847,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test2.go",
-			errormsg: `failpoint\.InjectContext: first argument expect context but go.*`,
+			errormsg: `failpoint\.InjectContext: first argument expect context in.*`,
 			original: `
 package rewriter_test
 
@@ -1867,7 +1867,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test3.go",
-			errormsg: `failpoint\.InjectContext: second argument expect string literal but got.*`,
+			errormsg: `failpoint\.InjectContext: second argument expect string literal in.*`,
 			original: `
 package rewriter_test
 
@@ -1887,7 +1887,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test4.go",
-			errormsg: `failpoint\.InjectContext: third argument expect closure but got.*`,
+			errormsg: `failpoint\.InjectContext: third argument expect closure in.*`,
 			original: `
 package rewriter_test
 

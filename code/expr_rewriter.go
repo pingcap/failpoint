@@ -34,31 +34,23 @@ var exprRewriters = map[string]exprRewriter{
 
 func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if len(call.Args) != 2 {
-		return false, nil, fmt.Errorf("failpoint.Inject: expect 2 arguments but got %v", len(call.Args))
+		return false, nil, fmt.Errorf("failpoint.Inject: expect 2 arguments but got %v in %s", len(call.Args), r.pos(call.Pos()))
 	}
 	fpname, ok := call.Args[0].(*ast.BasicLit)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.Inject: first argument expect string literal but got %T", call.Args[0])
+		return false, nil, fmt.Errorf("failpoint.Inject: first argument expect string literal in %s", r.pos(call.Pos()))
 	}
 	fpbody, ok := call.Args[1].(*ast.FuncLit)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.Inject: second argument expect closure but got %T", call.Args[1])
+		return false, nil, fmt.Errorf("failpoint.Inject: second argument expect closure in %s", r.pos(call.Pos()))
 	}
 
 	if len(fpbody.Type.Params.List) > 1 {
-		var types []string
-		for _, field := range fpbody.Type.Params.List {
-			types = append(types, fmt.Sprintf("%T", field.Type))
-		}
-		return false, nil, fmt.Errorf("failpoint.Inject: closure signature illegal (%s)", strings.Join(types, ", "))
+		return false, nil, fmt.Errorf("failpoint.Inject: closure signature illegal in %s", r.pos(call.Pos()))
 	}
 
 	if len(fpbody.Type.Params.List) == 1 && len(fpbody.Type.Params.List[0].Names) > 1 {
-		var types []string
-		for range fpbody.Type.Params.List[0].Names {
-			types = append(types, fmt.Sprintf("%T", fpbody.Type.Params.List[0].Type))
-		}
-		return false, nil, fmt.Errorf("failpoint.Inject: closure signature illegal (%s)", strings.Join(types, ", "))
+		return false, nil, fmt.Errorf("failpoint.Inject: closure signature illegal in %s", r.pos(call.Pos()))
 	}
 
 	var body = fpbody.Body.List
@@ -81,7 +73,7 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 		arg := fpbody.Type.Params.List[0]
 		selector, ok := arg.Type.(*ast.SelectorExpr)
 		if !ok || selector.Sel.Name != "Value" || selector.X.(*ast.Ident).Name != r.failpointName {
-			return false, nil, fmt.Errorf("failpoint.Inject: invalid signature with type: %T", arg.Type)
+			return false, nil, fmt.Errorf("failpoint.Inject: invalid signature in %s", r.pos(call.Pos()))
 		}
 		argName = arg.Names[0]
 	} else {
@@ -117,36 +109,28 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 
 func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if len(call.Args) != 3 {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: expect 3 arguments but got %v", len(call.Args))
+		return false, nil, fmt.Errorf("failpoint.InjectContext: expect 3 arguments but got %v in %s", len(call.Args), r.pos(call.Pos()))
 	}
 
 	ctxname, ok := call.Args[0].(*ast.Ident)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: first argument expect context but got %T", call.Args[0])
+		return false, nil, fmt.Errorf("failpoint.InjectContext: first argument expect context in %s", r.pos(call.Pos()))
 	}
 	fpname, ok := call.Args[1].(*ast.BasicLit)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: second argument expect string literal but got %T", call.Args[1])
+		return false, nil, fmt.Errorf("failpoint.InjectContext: second argument expect string literal in %s", r.pos(call.Pos()))
 	}
 	fpbody, ok := call.Args[2].(*ast.FuncLit)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: third argument expect closure but got %T", call.Args[2])
+		return false, nil, fmt.Errorf("failpoint.InjectContext: third argument expect closure in %s", r.pos(call.Pos()))
 	}
 
 	if len(fpbody.Type.Params.List) > 1 {
-		var types []string
-		for _, field := range fpbody.Type.Params.List {
-			types = append(types, fmt.Sprintf("%T", field.Type))
-		}
-		return false, nil, fmt.Errorf("failpoint.InjectContext: closure signature illegal (%s)", strings.Join(types, ", "))
+		return false, nil, fmt.Errorf("failpoint.InjectContext: closure signature illegal in %s", r.pos(call.Pos()))
 	}
 
 	if len(fpbody.Type.Params.List) == 1 && len(fpbody.Type.Params.List[0].Names) > 1 {
-		var types []string
-		for range fpbody.Type.Params.List[0].Names {
-			types = append(types, fmt.Sprintf("%T", fpbody.Type.Params.List[0].Type))
-		}
-		return false, nil, fmt.Errorf("failpoint.InjectContext: closure signature illegal (%s)", strings.Join(types, ", "))
+		return false, nil, fmt.Errorf("failpoint.InjectContext: closure signature illegal in %s", r.pos(call.Pos()))
 	}
 
 	var body = fpbody.Body.List
@@ -169,7 +153,7 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 		arg := fpbody.Type.Params.List[0]
 		selector, ok := arg.Type.(*ast.SelectorExpr)
 		if !ok || selector.Sel.Name != "Value" || selector.X.(*ast.Ident).Name != r.failpointName {
-			return false, nil, fmt.Errorf("failpoint.InjectContext: invalid signature with type: %T", arg.Type)
+			return false, nil, fmt.Errorf("failpoint.InjectContext: invalid signature in %s", r.pos(call.Pos()))
 		}
 		argName = arg.Names[0]
 	} else {
@@ -206,7 +190,7 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 
 func (r *Rewriter) rewriteBreak(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if count := len(call.Args); count > 1 {
-		return false, nil, fmt.Errorf("failpoint.Break expect 1 or 0 arguments, but got %v", count)
+		return false, nil, fmt.Errorf("failpoint.Break expect 1 or 0 arguments, but got %v in %s", count, r.pos(call.Pos()))
 	}
 	var stmt *ast.BranchStmt
 	if len(call.Args) > 0 {
@@ -228,7 +212,7 @@ func (r *Rewriter) rewriteBreak(call *ast.CallExpr) (bool, ast.Stmt, error) {
 
 func (r *Rewriter) rewriteContinue(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if count := len(call.Args); count > 1 {
-		return false, nil, fmt.Errorf("failpoint.Continue expect 1 or 0 arguments, but got %v", count)
+		return false, nil, fmt.Errorf("failpoint.Continue expect 1 or 0 arguments, but got %v in %s", count, r.pos(call.Pos()))
 	}
 	var stmt *ast.BranchStmt
 	if len(call.Args) > 0 {
@@ -250,7 +234,7 @@ func (r *Rewriter) rewriteContinue(call *ast.CallExpr) (bool, ast.Stmt, error) {
 
 func (r *Rewriter) rewriteLabel(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if count := len(call.Args); count != 1 {
-		return false, nil, fmt.Errorf("failpoint.Label expect 1 arguments, but got %v", count)
+		return false, nil, fmt.Errorf("failpoint.Label expect 1 arguments, but got %v in %s", count, r.pos(call.Pos()))
 	}
 	label := call.Args[0].(*ast.BasicLit).Value
 	label = strings.Trim(label, "`\"")
@@ -263,7 +247,7 @@ func (r *Rewriter) rewriteLabel(call *ast.CallExpr) (bool, ast.Stmt, error) {
 
 func (r *Rewriter) rewroteGoto(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if count := len(call.Args); count != 1 {
-		return false, nil, fmt.Errorf("failpoint.Goto expect 1 arguments, but got %v", count)
+		return false, nil, fmt.Errorf("failpoint.Goto expect 1 arguments, but got %v in %s", count, r.pos(call.Pos()))
 	}
 	label := call.Args[0].(*ast.BasicLit).Value
 	label = strings.Trim(label, "`\"")
