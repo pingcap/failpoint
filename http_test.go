@@ -1,6 +1,7 @@
 package failpoint_test
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -37,6 +38,12 @@ func (checker *hasPrefix) Check(params []interface{}, names []string) (result bo
 	return strings.Contains(params[0].(string), params[1].(string)), ""
 }
 
+type badReader struct{}
+
+func (badReader) Read([]byte) (int, error) {
+	return 0, errors.New("mock bad read")
+}
+
 func (s *httpSuite) TestServeHTTP(c *C) {
 	handler := &failpoint.HttpHandler{}
 
@@ -46,6 +53,20 @@ func (s *httpSuite) TestServeHTTP(c *C) {
 	res := httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
 	c.Assert(res.Code, Equals, http.StatusNoContent)
+
+	req, err = http.NewRequest(http.MethodPut, "http://127.0.0.1", strings.NewReader("return(1)"))
+	c.Assert(err, IsNil)
+	res = httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+	c.Assert(res.Code, Equals, http.StatusBadRequest)
+	c.Assert(res.Body.String(), Contains, "malformed request URI")
+
+	req, err = http.NewRequest(http.MethodPut, "http://127.0.0.1/failpoint-name", badReader{})
+	c.Assert(err, IsNil)
+	res = httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+	c.Assert(res.Code, Equals, http.StatusBadRequest)
+	c.Assert(res.Body.String(), Contains, "failed ReadAll in PUT")
 
 	req, err = http.NewRequest(http.MethodPut, "http://127.0.0.1/failpoint-name", strings.NewReader("invalid"))
 	c.Assert(err, IsNil)
