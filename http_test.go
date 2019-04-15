@@ -1,6 +1,7 @@
 package failpoint_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,11 +15,29 @@ func TestHttp(t *testing.T) {
 	TestingT(t)
 }
 
-var _ = &httpSuite{}
+var _ = Suite(&httpSuite{})
 
 type httpSuite struct{}
 
-func (s httpSuite) TestServeHTTP(c *C) {
+type hasPrefix struct {
+	*CheckerInfo
+}
+
+var Contains Checker = &hasPrefix{
+	&CheckerInfo{Name: "Contains", Params: []string{"obtained", "expected"}},
+}
+
+func (checker *hasPrefix) Check(params []interface{}, names []string) (result bool, error string) {
+	defer func() {
+		if v := recover(); v != nil {
+			result = false
+			error = fmt.Sprint(v)
+		}
+	}()
+	return strings.Contains(params[0].(string), params[1].(string)), ""
+}
+
+func (s *httpSuite) TestServeHTTP(c *C) {
 	handler := &failpoint.HttpHandler{}
 
 	// PUT
@@ -33,7 +52,7 @@ func (s httpSuite) TestServeHTTP(c *C) {
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
 	c.Assert(res.Code, Equals, http.StatusBadRequest)
-	c.Assert(res.Body.String(), Matches, "failed to set failpoint")
+	c.Assert(res.Body.String(), Contains, "failed to set failpoint")
 
 	// GET
 	req, err = http.NewRequest(http.MethodGet, "http://127.0.0.1/failpoint-name", strings.NewReader(""))
@@ -41,21 +60,21 @@ func (s httpSuite) TestServeHTTP(c *C) {
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
 	c.Assert(res.Code, Equals, http.StatusOK)
-	c.Assert(res.Body.String(), Matches, `return\(1\)`)
+	c.Assert(res.Body.String(), Contains, "return(1)")
 
 	req, err = http.NewRequest(http.MethodGet, "http://127.0.0.1/failpoint-name-not-exists", strings.NewReader(""))
 	c.Assert(err, IsNil)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusBadRequest)
-	c.Assert(res.Body.String(), Matches, "failed to GET")
+	c.Assert(res.Code, Equals, http.StatusNotFound)
+	c.Assert(res.Body.String(), Contains, "failed to GET")
 
 	req, err = http.NewRequest(http.MethodGet, "http://127.0.0.1/", strings.NewReader(""))
 	c.Assert(err, IsNil)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
 	c.Assert(res.Code, Equals, http.StatusOK)
-	c.Assert(res.Body.String(), Matches, `failpoint-name=return\(1\)`)
+	c.Assert(res.Body.String(), Contains, "failpoint-name=return(1)")
 
 	// DELETE
 	req, err = http.NewRequest(http.MethodDelete, "http://127.0.0.1/failpoint-name", strings.NewReader(""))
@@ -68,8 +87,8 @@ func (s httpSuite) TestServeHTTP(c *C) {
 	c.Assert(err, IsNil)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusNoContent)
-	c.Assert(res.Body.String(), Matches, "failed to delete failpoint")
+	c.Assert(res.Code, Equals, http.StatusBadRequest)
+	c.Assert(res.Body.String(), Contains, "failed to delete failpoint")
 
 	// DEFAULT
 	req, err = http.NewRequest(http.MethodPost, "http://127.0.0.1/failpoint-name", strings.NewReader(""))
@@ -77,5 +96,5 @@ func (s httpSuite) TestServeHTTP(c *C) {
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
 	c.Assert(res.Code, Equals, http.StatusMethodNotAllowed)
-	c.Assert(res.Body.String(), Matches, "Method not allowed")
+	c.Assert(res.Body.String(), Contains, "Method not allowed")
 }

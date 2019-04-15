@@ -88,7 +88,13 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	ok, val = failpoint.Eval("runtime-test-5")
 	c.Assert(ok, IsFalse)
 
-	list := failpoint.List()
-	c.Assert(list, DeepEquals, []string{"gofail/testPause", "runtime-test-1", "runtime-test-2",
-		"runtime-test-3", "runtime-test-4", "runtime-test-5"})
+	fps := map[string]struct{}{}
+	for _, fp := range failpoint.List() {
+		fps[fp] = struct{}{}
+	}
+	c.Assert(fps, HasKey, "runtime-test-1")
+	c.Assert(fps, HasKey, "runtime-test-2")
+	c.Assert(fps, HasKey, "runtime-test-3")
+	c.Assert(fps, HasKey, "runtime-test-4")
+	c.Assert(fps, HasKey, "runtime-test-5")
 }

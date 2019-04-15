@@ -12,7 +12,7 @@ func TestFailpoint(t *testing.T) {
 	TestingT(t)
 }
 
-var _ = &failpointSuite{}
+var _ = Suite(&failpointSuite{})
 
 type failpointSuite struct{}
 
