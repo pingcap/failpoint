@@ -1,8 +1,7 @@
 package failpoint_test
 
 import (
-	"bytes"
-	"io"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -140,10 +139,10 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	// Tests for sleep
 	ch = make(chan struct{})
 	go func() {
+		defer close(ch)
 		time.Sleep(time.Second)
 		err := failpoint.Disable("gofail/test-sleep")
 		c.Assert(err, IsNil)
-		close(ch)
 	}()
 	err = failpoint.Enable("gofail/test-sleep", "sleep(100)")
 	c.Assert(err, IsNil)
@@ -157,10 +156,10 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	// Tests for sleep duration
 	ch = make(chan struct{})
 	go func() {
+		defer close(ch)
 		time.Sleep(time.Second)
 		err := failpoint.Disable("gofail/test-sleep2")
 		c.Assert(err, IsNil)
-		close(ch)
 	}()
 	err = failpoint.Enable("gofail/test-sleep2", `sleep("100ms")`)
 	c.Assert(err, IsNil)
@@ -183,9 +182,10 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	outC := make(chan string)
 	// copy the output in a separate goroutine so printing can't block indefinitely
 	go func() {
-		var buf bytes.Buffer
-		io.Copy(&buf, r)
-		outC <- buf.String()
+		defer close(outC)
+		s, err := ioutil.ReadAll(r)
+		c.Assert(err, IsNil)
+		outC <- string(s)
 	}()
 	w.Close()
 	os.Stdout = oldStdio
