@@ -40,30 +40,48 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if !ok {
 		return false, nil, fmt.Errorf("failpoint.Inject: first argument expect string literal in %s", r.pos(call.Pos()))
 	}
-	fpbody, ok := call.Args[1].(*ast.FuncLit)
-	if !ok {
+
+	// failpoint.Inject("failpoint-name", nil)
+	ident, ok := call.Args[1].(*ast.Ident)
+	isNilFunc := ok && ident.Name == "nil"
+
+	// failpoint.Inject("failpoint-name", func(){...})
+	// failpoint.Inject("failpoint-name", func(val failpoint.Value){...})
+	fpbody, isFuncLit := call.Args[1].(*ast.FuncLit)
+	if !isNilFunc && !isFuncLit {
 		return false, nil, fmt.Errorf("failpoint.Inject: second argument expect closure in %s", r.pos(call.Pos()))
 	}
+	if isFuncLit {
+		if len(fpbody.Type.Params.List) > 1 {
+			return false, nil, fmt.Errorf("failpoint.Inject: closure signature illegal in %s", r.pos(call.Pos()))
+		}
 
-	if len(fpbody.Type.Params.List) > 1 {
-		return false, nil, fmt.Errorf("failpoint.Inject: closure signature illegal in %s", r.pos(call.Pos()))
+		if len(fpbody.Type.Params.List) == 1 && len(fpbody.Type.Params.List[0].Names) > 1 {
+			return false, nil, fmt.Errorf("failpoint.Inject: closure signature illegal in %s", r.pos(call.Pos()))
+		}
 	}
 
-	if len(fpbody.Type.Params.List) == 1 && len(fpbody.Type.Params.List[0].Names) > 1 {
-		return false, nil, fmt.Errorf("failpoint.Inject: closure signature illegal in %s", r.pos(call.Pos()))
+	fpnameExtendCall := &ast.CallExpr{
+		Fun:  ast.NewIdent(extendPkgName),
+		Args: []ast.Expr{fpname},
 	}
 
-	var body = fpbody.Body.List
+	checkCall := &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   ast.NewIdent(r.failpointName),
+			Sel: ast.NewIdent(evalFunction),
+		},
+		Args: []ast.Expr{fpnameExtendCall},
+	}
+	if isNilFunc {
+		return true, &ast.ExprStmt{X: checkCall}, nil
+	}
+
 	ifBody := &ast.BlockStmt{
 		Lbrace: call.Pos(),
-		List:   body,
+		List:   fpbody.Body.List,
 		Rbrace: call.End(),
 	}
-	var (
-		checkCall *ast.CallExpr
-		cond      = ast.NewIdent("ok")
-		init      *ast.AssignStmt
-	)
 
 	// closure signature:
 	// func(val failpoint.Value) {...}
@@ -80,19 +98,8 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 		argName = ast.NewIdent("_")
 	}
 
-	fpnameExtendCall := &ast.CallExpr{
-		Fun:  &ast.Ident{Name: extendPkgName},
-		Args: []ast.Expr{fpname},
-	}
-
-	checkCall = &ast.CallExpr{
-		Fun: &ast.SelectorExpr{
-			X:   &ast.Ident{Name: r.failpointName},
-			Sel: &ast.Ident{Name: evalFunction},
-		},
-		Args: []ast.Expr{fpnameExtendCall},
-	}
-	init = &ast.AssignStmt{
+	cond := ast.NewIdent("ok")
+	init := &ast.AssignStmt{
 		Lhs: []ast.Expr{cond, argName},
 		Rhs: []ast.Expr{checkCall},
 		Tok: token.DEFINE,
@@ -120,30 +127,49 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 	if !ok {
 		return false, nil, fmt.Errorf("failpoint.InjectContext: second argument expect string literal in %s", r.pos(call.Pos()))
 	}
-	fpbody, ok := call.Args[2].(*ast.FuncLit)
-	if !ok {
+
+	// failpoint.InjectContext("failpoint-name", ctx, nil)
+	ident, ok := call.Args[2].(*ast.Ident)
+	isNilFunc := ok && ident.Name == "nil"
+
+	// failpoint.InjectContext("failpoint-name", ctx, func(){...})
+	// failpoint.InjectContext("failpoint-name", ctx, func(val failpoint.Value){...})
+	fpbody, isFuncLit := call.Args[2].(*ast.FuncLit)
+	if !isNilFunc && !isFuncLit {
 		return false, nil, fmt.Errorf("failpoint.InjectContext: third argument expect closure in %s", r.pos(call.Pos()))
 	}
 
-	if len(fpbody.Type.Params.List) > 1 {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: closure signature illegal in %s", r.pos(call.Pos()))
+	if isFuncLit {
+		if len(fpbody.Type.Params.List) > 1 {
+			return false, nil, fmt.Errorf("failpoint.InjectContext: closure signature illegal in %s", r.pos(call.Pos()))
+		}
+
+		if len(fpbody.Type.Params.List) == 1 && len(fpbody.Type.Params.List[0].Names) > 1 {
+			return false, nil, fmt.Errorf("failpoint.InjectContext: closure signature illegal in %s", r.pos(call.Pos()))
+		}
 	}
 
-	if len(fpbody.Type.Params.List) == 1 && len(fpbody.Type.Params.List[0].Names) > 1 {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: closure signature illegal in %s", r.pos(call.Pos()))
+	fpnameExtendCall := &ast.CallExpr{
+		Fun:  ast.NewIdent(extendPkgName),
+		Args: []ast.Expr{fpname},
 	}
 
-	var body = fpbody.Body.List
+	checkCall := &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   ast.NewIdent(r.failpointName),
+			Sel: ast.NewIdent(evalCtxFunction),
+		},
+		Args: []ast.Expr{ctxname, fpnameExtendCall},
+	}
+	if isNilFunc {
+		return true, &ast.ExprStmt{X: checkCall}, nil
+	}
+
 	ifBody := &ast.BlockStmt{
 		Lbrace: call.Pos(),
-		List:   body,
+		List:   fpbody.Body.List,
 		Rbrace: call.End(),
 	}
-	var (
-		checkCall *ast.CallExpr
-		cond      = ast.NewIdent("ok")
-		init      *ast.AssignStmt
-	)
 
 	// closure signature:
 	// func(val failpoint.Value) {...}
@@ -160,20 +186,8 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 		argName = ast.NewIdent("_")
 	}
 
-	fpnameExtendCall := &ast.CallExpr{
-		Fun:  &ast.Ident{Name: extendPkgName},
-		Args: []ast.Expr{fpname},
-	}
-
-	checkCall = &ast.CallExpr{
-		Fun: &ast.SelectorExpr{
-			X:   &ast.Ident{Name: r.failpointName},
-			Sel: &ast.Ident{Name: evalCtxFunction},
-		},
-		Args: []ast.Expr{ctxname, fpnameExtendCall},
-	}
-
-	init = &ast.AssignStmt{
+	cond := ast.NewIdent("ok")
+	init := &ast.AssignStmt{
 		Lhs: []ast.Expr{cond, argName},
 		Rhs: []ast.Expr{checkCall},
 		Tok: token.DEFINE,

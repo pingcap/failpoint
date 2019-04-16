@@ -1841,6 +1841,66 @@ func unittest() {
 }
 `,
 		},
+
+		{
+			filepath: "test-nil-closure.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", nil)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Eval(_curpkg_("failpoint-name"))
+}
+`,
+		},
+
+		{
+			filepath: "test-nil-closure-ctx.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.InjectContext(nil, "failpoint-name", nil)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.EvalContext(nil, _curpkg_("failpoint-name"))
+}
+`,
+		},
 	}
 
 	// Create temp files
