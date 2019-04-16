@@ -28,12 +28,14 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 
 	ok, val = failpoint.Eval("runtime-test-2")
 	c.Assert(ok, IsFalse)
+	c.Assert(val, IsNil)
 
 	err = failpoint.Disable("runtime-test-1")
 	c.Assert(err, IsNil)
 
 	ok, val = failpoint.Eval("runtime-test-1")
 	c.Assert(ok, IsFalse)
+	c.Assert(val, IsNil)
 
 	err = failpoint.Disable("runtime-test-1")
 	c.Assert(err, ErrorMatches, `failpoint: failpoint is disabled`)
@@ -87,6 +89,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	}
 	ok, val = failpoint.Eval("runtime-test-5")
 	c.Assert(ok, IsFalse)
+	c.Assert(val, IsNil)
 
 	fps := map[string]struct{}{}
 	for _, fp := range failpoint.List() {
@@ -122,6 +125,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	}
 	ok, val = failpoint.Eval("runtime-test-6")
 	c.Assert(ok, IsFalse)
+	c.Assert(val, IsNil)
 
 	ok, val = failpoint.Eval("failpoint-env1")
 	c.Assert(ok, IsTrue)

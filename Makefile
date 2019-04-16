@@ -1,10 +1,10 @@
 ### Makefile for failpoint-ctl
 
-LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.ReleaseVersion=$(shell git describe --tags --dirty="-dev" --always)"
-LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.BuildTS=$(shell date -u '+%Y-%m-%d %I:%M:%S')"
-LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.GitHash=$(shell git rev-parse HEAD)"
-LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.GitBranch=$(shell git rev-parse --abbrev-ref HEAD)"
-LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.GoVersion=$(shell go version)"
+LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.releaseVersion=$(shell git describe --tags --dirty="-dev" --always)"
+LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.buildTS=$(shell date -u '+%Y-%m-%d %I:%M:%S')"
+LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.gitHash=$(shell git rev-parse HEAD)"
+LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.gitBranch=$(shell git rev-parse --abbrev-ref HEAD)"
+LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.goVersion=$(shell go version)"
 
 FAILPOINT_CTL_BIN := bin/failpoint-ctl
 

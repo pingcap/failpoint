@@ -28,11 +28,7 @@ func main() {
 	}
 
 	if os.Args[1] == "-V" {
-		fmt.Println("ReleaseVersion", version.ReleaseVersion)
-		fmt.Println("BuildTS", version.BuildTS)
-		fmt.Println("GitHash", version.GitHash)
-		fmt.Println("GitBranch", version.GitBranch)
-		fmt.Println("GoVersion", version.GoVersion)
+		version.PrintVersion()
 		os.Exit(0)
 	}
 

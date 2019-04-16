@@ -13,10 +13,21 @@
 
 package version
 
+import "fmt"
+
 var (
-	ReleaseVersion = "UNKNOWN"
-	BuildTS        = "UNKNOWN"
-	GitHash        = "UNKNOWN"
-	GitBranch      = "UNKNOWN"
-	GoVersion      = "UNKNOWN"
+	releaseVersion = "None"
+	buildTS        = "None"
+	gitHash        = "None"
+	gitBranch      = "None"
+	goVersion      = "None"
 )
+
+// Prints the release information
+func PrintVersion() {
+	fmt.Println("ReleaseVersion", releaseVersion)
+	fmt.Println("BuildTS", buildTS)
+	fmt.Println("GitHash", gitHash)
+	fmt.Println("GitBranch", gitBranch)
+	fmt.Println("GoVersion", goVersion)
+}
