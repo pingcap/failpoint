@@ -38,6 +38,7 @@ import (
 )
 
 var (
+	// ErrBadParse represents the terms is not an invalid form
 	ErrBadParse = fmt.Errorf("failpoint: could not parse terms")
 )
 

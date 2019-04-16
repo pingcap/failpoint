@@ -18,9 +18,12 @@ import (
 	"sync"
 )
 
-const failpointCtxKey string = "__failpoint_ctx_key__"
+const failpointCtxKey HookKey = "__failpoint_ctx_key__"
 
 type (
+	// HookKey represents the type of failpoint hook function key in context
+	HookKey string
+
 	// Value represents value that retrieved from failpoint terms.
 	// It can be used as following types:
 	// 1. val.(int)      // GO_FAILPOINTS="failpoint-name=return(1)"

@@ -1,6 +1,8 @@
 package failpoint_test
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -28,12 +30,14 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 
 	ok, val = failpoint.Eval("runtime-test-2")
 	c.Assert(ok, IsFalse)
+	c.Assert(val, IsNil)
 
 	err = failpoint.Disable("runtime-test-1")
 	c.Assert(err, IsNil)
 
 	ok, val = failpoint.Eval("runtime-test-1")
 	c.Assert(ok, IsFalse)
+	c.Assert(val, IsNil)
 
 	err = failpoint.Disable("runtime-test-1")
 	c.Assert(err, ErrorMatches, `failpoint: failpoint is disabled`)
@@ -87,6 +91,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	}
 	ok, val = failpoint.Eval("runtime-test-5")
 	c.Assert(ok, IsFalse)
+	c.Assert(val, IsNil)
 
 	fps := map[string]struct{}{}
 	for _, fp := range failpoint.List() {
@@ -122,6 +127,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	}
 	ok, val = failpoint.Eval("runtime-test-6")
 	c.Assert(ok, IsFalse)
+	c.Assert(val, IsNil)
 
 	ok, val = failpoint.Eval("failpoint-env1")
 	c.Assert(ok, IsTrue)
@@ -129,4 +135,68 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	ok, val = failpoint.Eval("failpoint-env2")
 	c.Assert(ok, IsTrue)
 	c.Assert(val.(bool), IsTrue)
+
+	// Tests for sleep
+	ch = make(chan struct{})
+	go func() {
+		defer close(ch)
+		time.Sleep(time.Second)
+		err := failpoint.Disable("gofail/test-sleep")
+		c.Assert(err, IsNil)
+	}()
+	err = failpoint.Enable("gofail/test-sleep", "sleep(100)")
+	c.Assert(err, IsNil)
+	start = time.Now()
+	ok, v = failpoint.Eval("gofail/test-sleep")
+	c.Assert(ok, IsFalse)
+	c.Assert(v, IsNil)
+	c.Assert(time.Since(start), GreaterEqual, 90*time.Millisecond, Commentf("not sleep"))
+	<-ch
+
+	// Tests for sleep duration
+	ch = make(chan struct{})
+	go func() {
+		defer close(ch)
+		time.Sleep(time.Second)
+		err := failpoint.Disable("gofail/test-sleep2")
+		c.Assert(err, IsNil)
+	}()
+	err = failpoint.Enable("gofail/test-sleep2", `sleep("100ms")`)
+	c.Assert(err, IsNil)
+	start = time.Now()
+	ok, v = failpoint.Eval("gofail/test-sleep2")
+	c.Assert(ok, IsFalse)
+	c.Assert(v, IsNil)
+	c.Assert(time.Since(start), GreaterEqual, 90*time.Millisecond, Commentf("not sleep"))
+	<-ch
+
+	// Tests for print
+	oldStdio := os.Stdout
+	r, w, err := os.Pipe()
+	c.Assert(err, IsNil)
+	os.Stdout = w
+	err = failpoint.Enable("test-print", `print`)
+	ok, val = failpoint.Eval("test-print")
+	c.Assert(ok, IsFalse)
+	c.Assert(val, IsNil)
+	outC := make(chan string)
+	// copy the output in a separate goroutine so printing can't block indefinitely
+	go func() {
+		defer close(outC)
+		s, err := ioutil.ReadAll(r)
+		c.Assert(err, IsNil)
+		outC <- string(s)
+	}()
+	w.Close()
+	os.Stdout = oldStdio
+	out := <-outC
+	c.Assert(out, Equals, "failpoint print: test-print\n")
+
+	// Tests for panic
+	c.Assert(testPanic, PanicMatches, "failpoint panic.*")
+}
+
+func testPanic() {
+	_ = failpoint.Enable("test-panic", `panic`)
+	failpoint.Eval("test-panic")
 }

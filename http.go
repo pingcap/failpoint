@@ -35,6 +35,7 @@ import (
 	"strings"
 )
 
+// HttpHandler is used to handle failpoint Enable/Disable/Status requests
 type HttpHandler struct{}
 
 func serve(host string) error {
