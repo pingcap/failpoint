@@ -142,7 +142,8 @@ func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
 		return r.rewriteExpr(ex.Index)
 
 	case *ast.SliceExpr:
-		// func()[]int {}()[func()int{}():func()int{}()]
+		// array[low:high:max]
+		// => func()[]int {}()[func()int{}():func()int{}():func()int{}()]
 		if err := r.rewriteExpr(ex.Low); err != nil {
 			return err
 		}
@@ -162,6 +163,8 @@ func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
 		if err := r.rewriteExpr(ex.Type); err != nil {
 			return err
 		}
+
+		// []int{func() int {...}()}
 		for _, elt := range ex.Elts {
 			if err := r.rewriteExpr(elt); err != nil {
 				return err

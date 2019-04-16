@@ -2319,6 +2319,380 @@ func unittest() {
 }
 `,
 		},
+
+		{
+			filepath: "bad-IndexExpr.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := func() []int {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+		return []int{1}
+	}()[0]
+}
+`,
+		},
+
+		{
+			filepath: "bad-SliceExpr-low.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := []int{1,2,3}[func() int {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+		return 0
+	}():1]
+}
+`,
+		},
+
+		{
+			filepath: "bad-SliceExpr-high.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := []int{1,2,3}[0:func() int {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+		return 1
+	}()]
+}
+`,
+		},
+
+		{
+			filepath: "bad-SliceExpr-max.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	arr := []int{1,2,3}
+	_ := arr[0:1:func() int {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+		return 2
+	}()]
+}
+`,
+		},
+
+		{
+			filepath: "bad-CompositeLit-elt.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := []int{func() int {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+		return 1
+	}()}
+}
+`,
+		},
+
+		{
+			filepath: "bad-CallExpr-Args.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	defer func(_ func()) {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+	}(func() {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+	})
+}
+`,
+		},
+
+		{
+			filepath: "bad-BinaryExpr-X.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := func() bool {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+		return true
+	}() && true
+}
+`,
+		},
+
+		{
+			filepath: "bad-ParenExpr.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := (func () {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+	}())
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteExprs.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() int {
+	return func() int {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+		return 1
+	}()
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	var a, b = 1, func() {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+	}
+	_, _ = a, b
+}
+`,
+		},
+
+		{
+			filepath: "bad-GoStmt.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	go func() {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+	}()
+}
+`,
+		},
+
+		{
+			filepath: "bad-BlockStmt.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	{
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-CaseClause-list.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch rand.Intn(10) {
+	case (func () int {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+		return 1
+	}()):
+		return
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-CaseClause-body.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch rand.Intn(10) {
+	case 1:
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-Switch-init.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch a := (func () {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+	}()); {
+	case 1:
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-Switch-tag.go",
+			errormsg: `failpoint\.Inject: invalid signature.*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch (func () {
+		failpoint.Inject("failpoint-name", func(val int) {
+			fmt.Println("unit-test", val)
+		})
+	}()) {
+	case 1:
+	}
+}
+`,
+		},
 	}
 
 	// Create temp files
