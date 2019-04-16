@@ -23,7 +23,7 @@ var (
 	goVersion      = "None"
 )
 
-// Prints the release information
+// PrintVersion prints the release information
 func PrintVersion() {
 	fmt.Println("ReleaseVersion", releaseVersion)
 	fmt.Println("BuildTS", buildTS)
