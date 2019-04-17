@@ -1901,6 +1901,74 @@ func unittest() {
 }
 `,
 		},
+
+		{
+			filepath: "test-return-marker.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() (int, int, error) {
+	failpoint.Inject("failpoint-name", func() {
+		failpoint.Return(123, 456, errors.New("something"))
+	})
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() (int, int, error) {
+	if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		return 123, 456, errors.New("something")
+	}
+}
+`,
+		},
+
+		{
+			filepath: "test-return-marker-with-value.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() (int, int, error) {
+	failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+		failpoint.Return(val.(int), 456, errors.New("something"))
+	})
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() (int, int, error) {
+	if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		return val.(int), 456, errors.New("something")
+	}
+}
+`,
+		},
 	}
 
 	// Create temp files

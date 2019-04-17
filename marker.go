@@ -67,6 +67,9 @@ func Continue(label ...string) {}
 // Fallthrough will translate to a `fallthrough` statement
 func Fallthrough() {}
 
+// Return will translate to a `return` statement
+func Return(result ...interface{}) {}
+
 // Label will generate a label statement, e.g.
 // case1:
 //   failpoint.Label("outer")

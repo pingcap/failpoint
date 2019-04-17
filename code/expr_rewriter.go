@@ -28,8 +28,9 @@ var exprRewriters = map[string]exprRewriter{
 	"Break":         (*Rewriter).rewriteBreak,
 	"Continue":      (*Rewriter).rewriteContinue,
 	"Label":         (*Rewriter).rewriteLabel,
-	"Goto":          (*Rewriter).rewroteGoto,
-	"Fallthrough":   (*Rewriter).rewroteFallthrough,
+	"Goto":          (*Rewriter).rewriteGoto,
+	"Fallthrough":   (*Rewriter).rewriteFallthrough,
+	"Return":        (*Rewriter).rewriteReturn,
 }
 
 func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
@@ -259,7 +260,7 @@ func (r *Rewriter) rewriteLabel(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	return true, stmt, nil
 }
 
-func (r *Rewriter) rewroteGoto(call *ast.CallExpr) (bool, ast.Stmt, error) {
+func (r *Rewriter) rewriteGoto(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if count := len(call.Args); count != 1 {
 		return false, nil, fmt.Errorf("failpoint.Goto expect 1 arguments, but got %v in %s", count, r.pos(call.Pos()))
 	}
@@ -273,10 +274,18 @@ func (r *Rewriter) rewroteGoto(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	return true, stmt, nil
 }
 
-func (r *Rewriter) rewroteFallthrough(call *ast.CallExpr) (bool, ast.Stmt, error) {
+func (r *Rewriter) rewriteFallthrough(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	stmt := &ast.BranchStmt{
 		TokPos: call.Pos(),
 		Tok:    token.FALLTHROUGH,
+	}
+	return true, stmt, nil
+}
+
+func (r *Rewriter) rewriteReturn(call *ast.CallExpr) (bool, ast.Stmt, error) {
+	stmt := &ast.ReturnStmt{
+		Return:  call.Pos(),
+		Results: call.Args,
 	}
 	return true, stmt, nil
 }

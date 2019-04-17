@@ -58,6 +58,7 @@ An implementation of [failpoints][failpoint] for Golang.
     - `func Goto(label string) {}`
     - `func Continue(label ...string) {}`
     - `func Fallthrough() {}`
+    - `func Return(results ...interface{}) {}`
     - `func Label(label string) {}`
 
 ## How to inject a failpoint to your program
@@ -67,7 +68,7 @@ used to trigger the failpoint and `failpoint-closure` will be expanded as the bo
 
     ```go
     failpoint.Inject("failpoint-name", func(val failpoint.Value) {
-        fmt.Println("unit-test", val)
+        failpoint.Return("unit-test", val)
     })
     ```
 
@@ -75,7 +76,7 @@ used to trigger the failpoint and `failpoint-closure` will be expanded as the bo
 
     ```go
     if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
-        fmt.Println("unit-test", val)
+        return "unit-test", val
     }
     ```
 
