@@ -1249,6 +1249,110 @@ func unittest() {
 		},
 
 		{
+			filepath: "for-statement2.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+type Iterator struct {
+	count int
+	max   int
+}
+
+func (i *Iterator) Begin(fn func()) int {
+	i.count = 0
+	return i.count
+}
+
+func (i *Iterator) Next(fn func()) int {
+	if i.count >= i.max {
+		panic("iterator to end")
+	}
+	i.count++
+	return i.count
+}
+
+func (i *Iterator) End(fn func()) bool {
+	return i.count == i.max
+}
+
+func unittest() {
+	iter := &Iterator{max: 10}
+	for iter.Begin(func() {
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+			fmt.Println("unit-test", val)
+		})
+	}); !iter.End(func() {
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+			fmt.Println("unit-test", val)
+		})
+	}); {
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+			fmt.Println("unit-test", val)
+		})
+		i := iter.Next(func() {})
+		fmt.Printf("get value: %d\n", i)
+	}
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+type Iterator struct {
+	count	int
+	max	int
+}
+
+func (i *Iterator) Begin(fn func()) int {
+	i.count = 0
+	return i.count
+}
+
+func (i *Iterator) Next(fn func()) int {
+	if i.count >= i.max {
+		panic("iterator to end")
+	}
+	i.count++
+	return i.count
+}
+
+func (i *Iterator) End(fn func()) bool {
+	return i.count == i.max
+}
+
+func unittest() {
+	iter := &Iterator{max: 10}
+	for iter.Begin(func() {
+		if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			fmt.Println("unit-test", val)
+		}
+	}); !iter.End(func() {
+		if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			fmt.Println("unit-test", val)
+		}
+	}); {
+		if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			fmt.Println("unit-test", val)
+		}
+		i := iter.Next(func() {})
+		fmt.Printf("get value: %d\n", i)
+	}
+}
+`,
+		},
+
+		{
 			filepath: "range-statement.go",
 			original: `
 package rewriter_test
