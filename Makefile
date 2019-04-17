@@ -72,5 +72,5 @@ upload-cover:
 	bash <(curl -s https://codecov.io/bash)
 
 tools/bin/gometalinter:
-	cd tools/bin/; \
+	cd tools; \
   curl -L https://git.io/vp6lP | sh
