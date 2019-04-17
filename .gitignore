@@ -25,3 +25,4 @@ explain_test
 *.fail.go
 vendor
 .DS_Store
+tools/bin/

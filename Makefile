@@ -9,7 +9,7 @@ LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.goVersion=$(sh
 FAILPOINT_CTL_BIN := bin/failpoint-ctl
 
 path_to_add := $(addsuffix /bin,$(subst :,/bin:,$(GOPATH)))
-export PATH := $(path_to_add):$(PATH)
+export PATH := $(path_to_add):$(PATH):$(shell pwd)/tools/bin
 
 GO        := GO111MODULE=on go
 GOBUILD   := GO111MODULE=on CGO_ENABLED=0 $(GO) build
@@ -39,9 +39,24 @@ checksuccess:
 		echo "failpoint-ctl build successfully :-) !" ; \
 	fi
 
-test: gotest 
+test: gotest check-static
+
+check-static: tools/bin/gometalinter
+	@ # TODO: enable megacheck.
+	@ # TODO: gometalinter has been DEPRECATED.
+	@ # https://github.com/alecthomas/gometalinter/issues/590
+	@ echo "----------- static check  ---------------"
+	tools/bin/gometalinter --disable-all --deadline 120s \
+		--enable gofmt \
+	  --enable misspell \
+		--enable ineffassign \
+		--enable interfacer \
+		./...
+	@ # TODO	--enable errcheck 
+	@ #	TODO --enable golint 
 
 gotest:
+	@ echo "----------- go test ---------------"
 	$(GOTEST) -v ./...
 
 cover:
@@ -56,3 +71,6 @@ upload-cover:
 	mv overalls.coverprofile coverage.txt
 	bash <(curl -s https://codecov.io/bash)
 
+tools/bin/gometalinter:
+	cd tools/bin/; \
+  curl -L https://git.io/vp6lP | sh
