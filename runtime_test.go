@@ -176,6 +176,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	c.Assert(err, IsNil)
 	os.Stdout = w
 	err = failpoint.Enable("test-print", `print`)
+	c.Assert(err, IsNil)
 	ok, val = failpoint.Eval("test-print")
 	c.Assert(ok, IsFalse)
 	c.Assert(val, IsNil)

@@ -8,10 +8,10 @@ coverage:
   range: "65...90"
 
   status:
-    project: 
+    project:
       default:
         threshold: 20  #Allow the coverage to drop by threshold%, and posting a success status.
-    patch: 
+    patch:
       default:
         target: 0% # trial operation
     changes: no
