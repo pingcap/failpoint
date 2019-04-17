@@ -414,17 +414,15 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 		case *ast.ForStmt:
 			// for i := func() int {...}(); i < func() int {...}(); i += func() int {...}() {...}
 			if v.Init != nil {
-				if expr, ok := v.Init.(*ast.ExprStmt); ok {
-					err := r.rewriteExpr(expr.X)
-					if err != nil {
-						return err
-					}
+				var err error
+				switch stmt := v.Init.(type) {
+				case *ast.ExprStmt:
+					err = r.rewriteExpr(stmt.X)
+				case *ast.AssignStmt:
+					err = r.rewriteAssign(stmt)
 				}
-				if assign, ok := v.Init.(*ast.AssignStmt); ok {
-					err := r.rewriteAssign(assign)
-					if err != nil {
-						return err
-					}
+				if err != nil {
+					return err
 				}
 			}
 			if v.Cond != nil {
