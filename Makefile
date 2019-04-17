@@ -50,7 +50,6 @@ check-static: tools/bin/gometalinter
 		--enable gofmt \
 		--enable misspell \
 		--enable ineffassign \
-		--enable interfacer \
 		./...
 	@ # TODO --enable errcheck
 	@ #	TODO --enable golint
