@@ -26,7 +26,7 @@ ifeq ("$(WITH_RACE)", "1")
 	GOBUILD   = GOPATH=$(GOPATH) CGO_ENABLED=1 $(GO) build
 endif
 
-.PHONY: build checksuccess test cover upload-cover gotest
+.PHONY: build checksuccess test cover upload-cover gotest check-static
 
 default: build checksuccess
 
@@ -48,12 +48,12 @@ check-static: tools/bin/gometalinter
 	@ echo "----------- static check  ---------------"
 	tools/bin/gometalinter --disable-all --deadline 120s \
 		--enable gofmt \
-	  --enable misspell \
+		--enable misspell \
 		--enable ineffassign \
 		--enable interfacer \
 		./...
-	@ # TODO	--enable errcheck 
-	@ #	TODO --enable golint 
+	@ # TODO --enable errcheck
+	@ #	TODO --enable golint
 
 gotest:
 	@ echo "----------- go test ---------------"
