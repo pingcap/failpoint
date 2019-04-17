@@ -2447,6 +2447,690 @@ func unittest() {
 }
 `,
 		},
+
+		{
+			filepath: "bad-IndexExpr.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := func() []int {
+		failpoint.Goto("11", "22")
+		return []int{1}
+	}()[0]
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteExpr-SliceExpr-Low.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := []int{1,2,3}[func() int {
+		failpoint.Goto("11", "22")
+		return 0
+	}():1]
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteExpr-SliceExpr-High.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := []int{1,2,3}[0:func() int {
+		failpoint.Goto("11", "22")
+		return 1
+	}()]
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteExpr-SliceExpr-Max.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	arr := []int{1,2,3}
+	_ := arr[0:1:func() int {
+		failpoint.Goto("11", "22")
+		return 2
+	}()]
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteExpr-CompositeLit-Elt.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := []int{func() int {
+		failpoint.Goto("11", "22")
+		return 1
+	}()}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteExpr-CallExpr-Fun.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	return func() {
+		failpoint.Goto("11", "22")
+	}()
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteExpr-CallExpr-Args.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	return func(_ func()) {} (func() {
+		failpoint.Goto("11", "22")
+	})
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteExpr-BinaryExpr-X.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := func() bool {
+		failpoint.Goto("11", "22")
+		return true
+	}() && true
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteExpr-ParenExpr.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	_ := (func () {
+		failpoint.Goto("11", "22")
+	}())
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteExprs.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() int {
+	return func() int {
+		failpoint.Goto("11", "22")
+		return 1
+	}()
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	var a, b = 1, func() {
+		failpoint.Goto("11", "22")
+	}
+	_, _ = a, b
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-GoStmt.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	go func() {
+		failpoint.Goto("11", "22")
+	}()
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-DeferStmt.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	defer func() {
+		failpoint.Goto("11", "22")
+	}()
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-BlockStmt.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	{
+		failpoint.Goto("11", "22")
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-CaseClause-List.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch rand.Intn(10) {
+	case (func () int {
+		failpoint.Goto("11", "22")
+		return 1
+	}()):
+		return
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-CaseClause-Body.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch rand.Intn(10) {
+	case 1:
+		failpoint.Goto("11", "22")
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-SwitchStmt-Init.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch a := (func () {
+		failpoint.Goto("11", "22")
+	}()); {
+	case 1:
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-SwitchStmt-Tag.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch (func () {
+		failpoint.Goto("11", "22")
+	}()) {
+	case 1:
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-CommClause-AssignStmt.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	select {
+	case ch := func () chan bool {
+		failpoint.Goto("11", "22")
+		return make(chan bool, 1)
+	}():
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-CommClause-ExprStmt.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	select {
+	case <- func () chan bool {
+		failpoint.Goto("11", "22")
+		return make(chan bool, 1)
+	}():
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-CommClause-Body.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	select {
+	case <- ch:
+		failpoint.Goto("11", "22")
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-SelectStmt-empty.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	select {}
+	failpoint.Goto("11", "22")
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-ForStmt-Init.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	for i := (func () {
+		failpoint.Goto("11", "22")
+	}());; {}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-ForStmt-Cond.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	for i < (func () {
+		failpoint.Goto("11", "22")
+	}()) {}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-ForStmt-Post.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	for ;;i+=(func () {
+		failpoint.Goto("11", "22")
+	}()) {}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-ForStmt-Body.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	for {
+		failpoint.Goto("11", "22")
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-RangeStmt-X.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	for x := range (func () {
+		failpoint.Goto("11", "22")
+	}()) {}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-RangeStmt-Body.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	for x := range y {
+		failpoint.Goto("11", "22")
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-TypeSwitchStmt-AssignStmt.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch x := (func () {
+		failpoint.Goto("11", "22")
+	}()).(type) {}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-TypeSwitchStmt-ExprStmt.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch (func () {
+		failpoint.Goto("11", "22")
+	}()).(type) {}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-TypeSwitchStmt-Body.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	switch y.(type) {
+	case x:
+		failpoint.Goto("11", "22")
+	}
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-SendStmt.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	a <- func () {
+		failpoint.Goto("11", "22")
+	}()
+}
+`,
+		},
+
+		{
+			filepath: "bad-rewriteStmts-LabeledStmt.go",
+			errormsg: `failpoint\.Goto expect 1 arguments, but got .*`,
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+label:
+	failpoint.Goto("11", "22")
+}
+`,
+		},
 	}
 
 	// Create temp files
