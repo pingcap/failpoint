@@ -160,10 +160,6 @@ func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
 		return r.rewriteFuncLit(ex)
 
 	case *ast.CompositeLit:
-		if err := r.rewriteExpr(ex.Type); err != nil {
-			return err
-		}
-
 		// []int{func() int {...}()}
 		for _, elt := range ex.Elts {
 			if err := r.rewriteExpr(elt); err != nil {
@@ -180,6 +176,7 @@ func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
 			}
 		}
 
+		// return fn(func() int{...})
 		for _, arg := range ex.Args {
 			if fn, ok := arg.(*ast.FuncLit); ok {
 				err := r.rewriteFuncLit(fn)
@@ -194,6 +191,7 @@ func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
 		return r.rewriteExpr(ex.X)
 
 	case *ast.UnaryExpr:
+		// !func() {...}()
 		return r.rewriteExpr(ex.X)
 
 	case *ast.BinaryExpr:
@@ -208,12 +206,15 @@ func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
 		return r.rewriteExpr(ex.Y)
 
 	case *ast.ParenExpr:
+		// (func() {...}())
 		return r.rewriteExpr(ex.X)
 
 	case *ast.TypeAssertExpr:
+		// (func() {...}()).(type)
 		return r.rewriteExpr(ex.X)
 
 	case *ast.KeyValueExpr:
+		// Key: (func() {...}())
 		return r.rewriteExpr(ex.Value)
 
 	default:
@@ -304,6 +305,7 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			r.rewritten = true
 
 		case *ast.AssignStmt:
+			// x := (func() {...} ())
 			err := r.rewriteAssign(v)
 			if err != nil {
 				return err
@@ -326,18 +328,24 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			}
 
 		case *ast.ReturnStmt:
+			// return func() {...}()
+			// return func(fn) {...}(func(){...})
 			err := r.rewriteExprs(v.Results)
 			if err != nil {
 				return err
 			}
 
 		case *ast.BlockStmt:
+			// {
+			//     func() {...}()
+			// }
 			err := r.rewriteStmts(v.List)
 			if err != nil {
 				return err
 			}
 
 		case *ast.IfStmt:
+			// if func() {...}() {...}
 			err := r.rewriteIfStmt(v)
 			if err != nil {
 				return err
@@ -362,6 +370,7 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			}
 
 		case *ast.SwitchStmt:
+			// switch x := func() {...}(); {...}
 			if v.Init != nil {
 				err := r.rewriteAssign(v.Init.(*ast.AssignStmt))
 				if err != nil {
@@ -369,10 +378,15 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 				}
 			}
 
+			// switch (func() {...}()) {...}
 			if err := r.rewriteExpr(v.Tag); err != nil {
 				return err
 			}
 
+			// switch x {
+			// case 1:
+			// 	func() {...}()
+			// }
 			err := r.rewriteStmts(v.Body.List)
 			if err != nil {
 				return err
@@ -443,6 +457,7 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			}
 
 		case *ast.RangeStmt:
+			// for i := range func() {...}() {...}
 			if err := r.rewriteExpr(v.X); err != nil {
 				return err
 			}
@@ -453,12 +468,14 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 
 		case *ast.TypeSwitchStmt:
 			if v.Assign != nil {
+				// 	switch x := (func () {...}()).(type) {...}
 				if assign, ok := v.Assign.(*ast.AssignStmt); ok {
 					err := r.rewriteAssign(assign)
 					if err != nil {
 						return err
 					}
 				}
+				// 	switch (func () {...}()).(type) {...}
 				if expr, ok := v.Assign.(*ast.ExprStmt); ok {
 					err := r.rewriteExpr(expr.X)
 					if err != nil {
@@ -472,12 +489,15 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			}
 
 		case *ast.SendStmt:
+			// 	ch <- func () {...}()
 			err := r.rewriteExprs([]ast.Expr{v.Chan, v.Value})
 			if err != nil {
 				return err
 			}
 
 		case *ast.LabeledStmt:
+			// Label:
+			//     func () {...}()
 			stmts := []ast.Stmt{v.Stmt}
 			err := r.rewriteStmts(stmts)
 			if err != nil {
