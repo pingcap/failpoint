@@ -414,9 +414,17 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 		case *ast.ForStmt:
 			// for i := func() int {...}(); i < func() int {...}(); i += func() int {...}() {...}
 			if v.Init != nil {
-				err := r.rewriteAssign(v.Init.(*ast.AssignStmt))
-				if err != nil {
-					return err
+				if expr, ok := v.Init.(*ast.ExprStmt); ok {
+					err := r.rewriteExpr(expr.X)
+					if err != nil {
+						return err
+					}
+				}
+				if assign, ok := v.Init.(*ast.AssignStmt); ok {
+					err := r.rewriteAssign(assign)
+					if err != nil {
+						return err
+					}
 				}
 			}
 			if v.Cond != nil {
