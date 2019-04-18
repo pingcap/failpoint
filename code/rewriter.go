@@ -130,9 +130,10 @@ func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
 		*ast.FuncType,
 		*ast.InterfaceType,
 		*ast.MapType,
-		*ast.ChanType,
-		*ast.SelectorExpr:
+		*ast.ChanType:
 	// expressions that can not inject failpoint
+	case *ast.SelectorExpr:
+		return r.rewriteExpr(ex.X)
 
 	case *ast.IndexExpr:
 		// func()[]int {}()[func()int{}()]
@@ -511,11 +512,19 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			}
 			v.Stmt = stmts[0]
 
+		case *ast.IncDecStmt:
+			// func() *FooType {...}().Field++
+			// func() *FooType {...}().Field--
+			err := r.rewriteExpr(v.X)
+			if err != nil {
+				return err
+			}
+
 		case *ast.BranchStmt:
 			// ignore keyword token (BREAK, CONTINUE, GOTO, FALLTHROUGH)
 
 		default:
-			fmt.Printf("unsupport statement: %T in %s\n", v, r.pos(v.Pos()))
+			fmt.Printf("unsupported statement: %T in %s\n", v, r.pos(v.Pos()))
 		}
 	}
 
@@ -552,6 +561,7 @@ func (r *Rewriter) rewriteFile(path string) (err error) {
 	r.currentPath = path
 	r.currentFile = file
 	r.currsetFset = fset
+	r.rewritten = false
 
 	var failpointImport *ast.ImportSpec
 	for _, imp := range file.Imports {

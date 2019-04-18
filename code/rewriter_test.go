@@ -977,7 +977,7 @@ func unittest() {
 			failpoint.Inject("failpoint-name", func(val failpoint.Value) {
 				fmt.Println("unit-test", val)
 			})
-			fmt.Printf("unsupport type %T\n", t)
+			fmt.Printf("unsupported type %T\n", t)
 		}
 	}
 
@@ -1039,7 +1039,7 @@ func unittest() {
 			if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
 				fmt.Println("unit-test", val)
 			}
-			fmt.Printf("unsupport type %T\n", t)
+			fmt.Printf("unsupported type %T\n", t)
 		}
 	}
 
@@ -2070,6 +2070,52 @@ func unittest() (int, int, error) {
 	if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
 		return val.(int), 456, errors.New("something")
 	}
+}
+`,
+		},
+
+		{
+			filepath: "test-inc-dec-statement.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		Y int
+	}
+	func() *X {
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) *X {
+			return &X{Y: val.(int)}
+		})
+		return &X{Y: 100}
+	}().Y++
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		Y int
+	}
+	func() *X {
+		if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return &X{Y: val.(int)}
+		}
+		return &X{Y: 100}
+	}().Y++
 }
 `,
 		},
