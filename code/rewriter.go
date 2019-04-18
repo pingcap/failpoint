@@ -87,10 +87,23 @@ func (r *Rewriter) rewriteAssign(v *ast.AssignStmt) error {
 	return nil
 }
 
+// rewriteInitStmt rewrites non-nil initialization statement
+func (r *Rewriter) rewriteInitStmt(v ast.Stmt) error {
+	var err error
+	switch stmt := v.(type) {
+	case *ast.ExprStmt:
+		err = r.rewriteExpr(stmt.X)
+	case *ast.AssignStmt:
+		err = r.rewriteAssign(stmt)
+	}
+	return err
+}
+
 func (r *Rewriter) rewriteIfStmt(v *ast.IfStmt) error {
 	// if a, b := func() {...}, func() int {...}(); cond {...}
+	// if func() {...}(); cond {...}
 	if v.Init != nil {
-		err := r.rewriteAssign(v.Init.(*ast.AssignStmt))
+		err := r.rewriteInitStmt(v.Init)
 		if err != nil {
 			return err
 		}
@@ -431,14 +444,9 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 
 		case *ast.ForStmt:
 			// for i := func() int {...}(); i < func() int {...}(); i += func() int {...}() {...}
+			// for iter.Begin(); !iter.End(); iter.Next() {...}
 			if v.Init != nil {
-				var err error
-				switch stmt := v.Init.(type) {
-				case *ast.ExprStmt:
-					err = r.rewriteExpr(stmt.X)
-				case *ast.AssignStmt:
-					err = r.rewriteAssign(stmt)
-				}
+				err := r.rewriteInitStmt(v.Init)
 				if err != nil {
 					return err
 				}
