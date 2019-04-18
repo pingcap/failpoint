@@ -755,6 +755,62 @@ func unittest() {
 		},
 
 		{
+			filepath: "if-statement-4.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+const success = 200
+
+func unittest() {
+	var i int
+	if func(v *int) {
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+			fmt.Println("unit-test", val)
+		})
+		*v = success
+	}(&i); i == success {
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+			fmt.Println("unit-test", val)
+		})
+		fmt.Printf("i = %d success\n", i)
+	}
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+const success = 200
+
+func unittest() {
+	var i int
+	if func(v *int) {
+		if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			fmt.Println("unit-test", val)
+		}
+		*v = success
+	}(&i); i == success {
+		if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			fmt.Println("unit-test", val)
+		}
+		fmt.Printf("i = %d success\n", i)
+	}
+}
+`,
+		},
+
+		{
 			filepath: "switch-statement.go",
 			original: `
 package rewriter_test
