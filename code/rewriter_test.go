@@ -977,7 +977,7 @@ func unittest() {
 			failpoint.Inject("failpoint-name", func(val failpoint.Value) {
 				fmt.Println("unit-test", val)
 			})
-			fmt.Printf("unsupport type %T\n", t)
+			fmt.Printf("unsupported type %T\n", t)
 		}
 	}
 
@@ -1039,7 +1039,7 @@ func unittest() {
 			if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
 				fmt.Println("unit-test", val)
 			}
-			fmt.Printf("unsupport type %T\n", t)
+			fmt.Printf("unsupported type %T\n", t)
 		}
 	}
 
