@@ -2073,6 +2073,52 @@ func unittest() (int, int, error) {
 }
 `,
 		},
+
+		{
+			filepath: "test-inc-dec-statement.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		Y int
+	}
+	func() *X {
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) *X {
+			return &X{Y: val.(int)}
+		})
+		return &X{Y: 100}
+	}().Y++
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	type X struct {
+		Y int
+	}
+	func() *X {
+		if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			return &X{Y: val.(int)}
+		}
+		return &X{Y: 100}
+	}().Y++
+}
+`,
+		},
 	}
 
 	// Create temp files

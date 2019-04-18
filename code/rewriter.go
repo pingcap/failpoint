@@ -130,9 +130,10 @@ func (r *Rewriter) rewriteExpr(expr ast.Expr) error {
 		*ast.FuncType,
 		*ast.InterfaceType,
 		*ast.MapType,
-		*ast.ChanType,
-		*ast.SelectorExpr:
+		*ast.ChanType:
 	// expressions that can not inject failpoint
+	case *ast.SelectorExpr:
+		return r.rewriteExpr(ex.X)
 
 	case *ast.IndexExpr:
 		// func()[]int {}()[func()int{}()]
@@ -510,6 +511,14 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 				return err
 			}
 			v.Stmt = stmts[0]
+
+		case *ast.IncDecStmt:
+			// func() *FooType {...}().Field++
+			// func() *FooType {...}().Field--
+			err := r.rewriteExpr(v.X)
+			if err != nil {
+				return err
+			}
 
 		case *ast.BranchStmt:
 			// ignore keyword token (BREAK, CONTINUE, GOTO, FALLTHROUGH)
