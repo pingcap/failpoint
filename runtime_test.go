@@ -195,6 +195,18 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 
 	// Tests for panic
 	c.Assert(testPanic, PanicMatches, "failpoint panic.*")
+
+	err = failpoint.Enable("runtime-test-7", `return`)
+	c.Assert(err, IsNil)
+	ok, val = failpoint.Eval("runtime-test-7")
+	c.Assert(ok, IsTrue)
+	c.Assert(val, Equals, struct{}{})
+
+	err = failpoint.Enable("runtime-test-8", `return()`)
+	c.Assert(err, IsNil)
+	ok, val = failpoint.Eval("runtime-test-8")
+	c.Assert(ok, IsTrue)
+	c.Assert(val, Equals, struct{}{})
 }
 
 func testPanic() {
