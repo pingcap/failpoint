@@ -76,7 +76,7 @@ used to trigger the failpoint and `failpoint-closure` will be expanded as the bo
     The converted code looks like:
 
     ```go
-    if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+    if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
         return "unit-test", val
     }
     ```
@@ -101,7 +101,7 @@ which can be ignored.
     And the converted code looks like:
 
     ```go
-    if ok, _ := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+    if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
         fmt.Println("unit-test")
     }
     ```
@@ -119,7 +119,7 @@ active in parallel tests or other cases. For example,
     The converted code looks like:
 
     ```go
-    if ok, val := failpoint.EvalContext(ctx, _curpkg_("failpoint-name")); ok {
+    if val, ok := failpoint.EvalContext(ctx, _curpkg_("failpoint-name")); ok {
         fmt.Println("unit-test", val)
     }
     ```
@@ -135,7 +135,7 @@ active in parallel tests or other cases. For example,
     Becomes
 
     ```go
-    if ok, val := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); ok {
+    if val, ok := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); ok {
         fmt.Println("unit-test", val)
     }
     ```
@@ -218,7 +218,7 @@ active in parallel tests or other cases. For example,
                 case j / 10:
                     goto outer
                 default:
-                    if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+                    if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
                         fmt.Println("unit-test", val.(int))
                         if val == j/11 {
                             break inner
@@ -281,22 +281,22 @@ instead of using failpoint marker functions.
 
     ```go
     if a, b := func() {
-        if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+        if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
             fmt.Println("unit-test", val)
         }
     }, func() int { return rand.Intn(200) }(); b > func() int {
-        if ok, val := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+        if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
             return val.(int)
         }
         return rand.Intn(3000)
     }() && b < func() int {
-        if ok, val := failpoint.Eval(_curpkg_("failpoint-name-2")); ok {
+        if val, ok := failpoint.Eval(_curpkg_("failpoint-name-2")); ok {
             return rand.Intn(val.(int))
         }
         return rand.Intn(6000)
     }() {
         a()
-        if ok, val := failpoint.Eval(_curpkg_("failpoint-name-3")); ok {
+        if val, ok := failpoint.Eval(_curpkg_("failpoint-name-3")); ok {
             fmt.Println("unit-test", val)
         }
     }
@@ -330,7 +330,7 @@ instead of using failpoint marker functions.
     func (s *StoreService) ExecuteStoreTask() {
         select {
         case <-func() chan *StoreTask {
-            if ok, _ := failpoint.Eval(_curpkg_("priority-fp")); ok {
+            if _, ok := failpoint.Eval(_curpkg_("priority-fp")); ok {
                 return make(chan *StoreTask)
             })
             return s.priorityHighCh
@@ -386,7 +386,7 @@ instead of using failpoint marker functions.
         fmt.Println("create scatter region steps")
 
     case func() bool {
-        if ok, val := failpoint.Eval(_curpkg_("dynamic-op-type")); ok {
+        if val, ok := failpoint.Eval(_curpkg_("dynamic-op-type")); ok {
             return strings.Contains(val.(string), opType)
         }
         return false
@@ -417,7 +417,7 @@ package ddl // which parent package is `github.com/pingcap/tidb`
 
 func demo() {
 	// _curpkg_("the-original-failpoint-name") will be expanded as `github.com/pingcap/tidb/ddl/the-original-failpoint-name`
-	if ok, val := failpoint.Eval(_curpkg_("the-original-failpoint-name")); ok {...}
+	if val, ok := failpoint.Eval(_curpkg_("the-original-failpoint-name")); ok {...}
 }
 ```
 

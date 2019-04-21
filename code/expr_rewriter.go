@@ -101,7 +101,7 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 
 	cond := ast.NewIdent("ok")
 	init := &ast.AssignStmt{
-		Lhs: []ast.Expr{cond, argName},
+		Lhs: []ast.Expr{argName, cond},
 		Rhs: []ast.Expr{checkCall},
 		Tok: token.DEFINE,
 	}
@@ -189,7 +189,7 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 
 	cond := ast.NewIdent("ok")
 	init := &ast.AssignStmt{
-		Lhs: []ast.Expr{cond, argName},
+		Lhs: []ast.Expr{argName, cond},
 		Rhs: []ast.Expr{checkCall},
 		Tok: token.DEFINE,
 	}
