@@ -21,21 +21,21 @@ type runtimeSuite struct{}
 func (s *runtimeSuite) TestRuntime(c *C) {
 	err := failpoint.Enable("runtime-test-1", "return(1)")
 	c.Assert(err, IsNil)
-	ok, val := failpoint.Eval("runtime-test-1")
+	val, ok := failpoint.Eval("runtime-test-1")
 	c.Assert(ok, IsTrue)
 	c.Assert(val.(int), Equals, 1)
 
 	err = failpoint.Enable("runtime-test-2", "invalid")
 	c.Assert(err, ErrorMatches, `failpoint: could not parse terms`)
 
-	ok, val = failpoint.Eval("runtime-test-2")
+	val, ok = failpoint.Eval("runtime-test-2")
 	c.Assert(ok, IsFalse)
 	c.Assert(val, IsNil)
 
 	err = failpoint.Disable("runtime-test-1")
 	c.Assert(err, IsNil)
 
-	ok, val = failpoint.Eval("runtime-test-1")
+	val, ok = failpoint.Eval("runtime-test-1")
 	c.Assert(ok, IsFalse)
 	c.Assert(val, IsNil)
 
@@ -62,7 +62,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	err = failpoint.Enable("gofail/testPause", "pause")
 	c.Assert(err, IsNil)
 	start := time.Now()
-	ok, v := failpoint.Eval("gofail/testPause")
+	v, ok := failpoint.Eval("gofail/testPause")
 	c.Assert(ok, IsFalse)
 	c.Assert(v, IsNil)
 	c.Assert(time.Since(start), GreaterEqual, 100*time.Millisecond, Commentf("not paused"))
@@ -72,7 +72,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	c.Assert(err, IsNil)
 	var succ int
 	for i := 0; i < 1000; i++ {
-		ok, val = failpoint.Eval("runtime-test-4")
+		val, ok = failpoint.Eval("runtime-test-4")
 		if ok {
 			succ++
 			c.Assert(val.(int), Equals, 5)
@@ -85,11 +85,11 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	err = failpoint.Enable("runtime-test-5", "50*return(5)")
 	c.Assert(err, IsNil)
 	for i := 0; i < 50; i++ {
-		ok, val = failpoint.Eval("runtime-test-5")
+		val, ok = failpoint.Eval("runtime-test-5")
 		c.Assert(ok, Equals, true)
 		c.Assert(val.(int), Equals, 5)
 	}
-	ok, val = failpoint.Eval("runtime-test-5")
+	val, ok = failpoint.Eval("runtime-test-5")
 	c.Assert(ok, IsFalse)
 	c.Assert(val, IsNil)
 
@@ -107,32 +107,32 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	c.Assert(err, IsNil)
 	// 50*return(5)
 	for i := 0; i < 50; i++ {
-		ok, val = failpoint.Eval("runtime-test-6")
+		val, ok = failpoint.Eval("runtime-test-6")
 		c.Assert(ok, IsTrue)
 		c.Assert(val.(int), Equals, 5)
 	}
 	// 1*return(true)
-	ok, val = failpoint.Eval("runtime-test-6")
+	val, ok = failpoint.Eval("runtime-test-6")
 	c.Assert(ok, IsTrue)
 	c.Assert(val.(bool), IsTrue)
 	// 1*return(false)
-	ok, val = failpoint.Eval("runtime-test-6")
+	val, ok = failpoint.Eval("runtime-test-6")
 	c.Assert(ok, IsTrue)
 	c.Assert(val.(bool), IsFalse)
 	// 10*return(20)
 	for i := 0; i < 10; i++ {
-		ok, val = failpoint.Eval("runtime-test-6")
+		val, ok = failpoint.Eval("runtime-test-6")
 		c.Assert(ok, IsTrue)
 		c.Assert(val.(int), Equals, 20)
 	}
-	ok, val = failpoint.Eval("runtime-test-6")
+	val, ok = failpoint.Eval("runtime-test-6")
 	c.Assert(ok, IsFalse)
 	c.Assert(val, IsNil)
 
-	ok, val = failpoint.Eval("failpoint-env1")
+	val, ok = failpoint.Eval("failpoint-env1")
 	c.Assert(ok, IsTrue)
 	c.Assert(val.(int), Equals, 10)
-	ok, val = failpoint.Eval("failpoint-env2")
+	val, ok = failpoint.Eval("failpoint-env2")
 	c.Assert(ok, IsTrue)
 	c.Assert(val.(bool), IsTrue)
 
@@ -147,7 +147,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	err = failpoint.Enable("gofail/test-sleep", "sleep(100)")
 	c.Assert(err, IsNil)
 	start = time.Now()
-	ok, v = failpoint.Eval("gofail/test-sleep")
+	v, ok = failpoint.Eval("gofail/test-sleep")
 	c.Assert(ok, IsFalse)
 	c.Assert(v, IsNil)
 	c.Assert(time.Since(start), GreaterEqual, 90*time.Millisecond, Commentf("not sleep"))
@@ -164,7 +164,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	err = failpoint.Enable("gofail/test-sleep2", `sleep("100ms")`)
 	c.Assert(err, IsNil)
 	start = time.Now()
-	ok, v = failpoint.Eval("gofail/test-sleep2")
+	v, ok = failpoint.Eval("gofail/test-sleep2")
 	c.Assert(ok, IsFalse)
 	c.Assert(v, IsNil)
 	c.Assert(time.Since(start), GreaterEqual, 90*time.Millisecond, Commentf("not sleep"))
@@ -177,7 +177,7 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 	os.Stdout = w
 	err = failpoint.Enable("test-print", `print`)
 	c.Assert(err, IsNil)
-	ok, val = failpoint.Eval("test-print")
+	val, ok = failpoint.Eval("test-print")
 	c.Assert(ok, IsFalse)
 	c.Assert(val, IsNil)
 	outC := make(chan string)
@@ -198,13 +198,13 @@ func (s *runtimeSuite) TestRuntime(c *C) {
 
 	err = failpoint.Enable("runtime-test-7", `return`)
 	c.Assert(err, IsNil)
-	ok, val = failpoint.Eval("runtime-test-7")
+	val, ok = failpoint.Eval("runtime-test-7")
 	c.Assert(ok, IsTrue)
 	c.Assert(val, Equals, struct{}{})
 
 	err = failpoint.Enable("runtime-test-8", `return()`)
 	c.Assert(err, IsNil)
-	ok, val = failpoint.Eval("runtime-test-8")
+	val, ok = failpoint.Eval("runtime-test-8")
 	c.Assert(ok, IsTrue)
 	c.Assert(val, Equals, struct{}{})
 }
