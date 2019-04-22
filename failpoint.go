@@ -53,39 +53,39 @@ func WithHook(ctx context.Context, hook Hook) context.Context {
 }
 
 // EvalContext evaluates a failpoint's value, and calls hook if the context is
-// not nil and contains hook function. It will return true and the evaluated
-// value if the failpoint is active
-func EvalContext(ctx context.Context, fpname string) (bool, Value) {
+// not nil and contains hook function. It will return the evaluated value and
+// true if the failpoint is active
+func EvalContext(ctx context.Context, fpname string) (Value, bool) {
 	if ctx != nil {
 		hook := ctx.Value(failpointCtxKey)
 		if hook != nil {
 			h, ok := hook.(Hook)
 			if ok && !h(ctx, fpname) {
-				return false, nil
+				return nil, false
 			}
 		}
 	}
 	return Eval(fpname)
 }
 
-// Eval evaluates a failpoint's value, It will return true and the evaluated
-// value if the failpoint is active
-func Eval(fpname string) (bool, Value) {
+// Eval evaluates a failpoint's value, It will return the evaluated value and
+// true if the failpoint is active
+func Eval(fpname string) (Value, bool) {
 	failpoints.mu.RLock()
 	defer failpoints.mu.RUnlock()
 	fp, found := failpoints.reg[fpname]
 	if !found {
-		return false, nil
+		return nil, false
 	}
 
 	fp.mu.RLock()
 	defer fp.mu.RUnlock()
 	if fp.t == nil {
-		return false, nil
+		return nil, false
 	}
 	v := fp.t.eval()
 	if v == nil {
-		return false, nil
+		return nil, false
 	}
-	return true, v
+	return v, true
 }
