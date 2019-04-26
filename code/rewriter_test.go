@@ -2175,6 +2175,34 @@ func unittest() {
 }
 `,
 		},
+
+		{
+			filepath: "test-empty-body.go",
+			original: `
+package rewriter_test
+
+import (
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func() {})
+	failpoint.Inject("failpoint-name", nil)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Eval(_curpkg_("failpoint-name"))
+	failpoint.Eval(_curpkg_("failpoint-name"))
+}
+`,
+		},
 	}
 
 	// Create temp files
