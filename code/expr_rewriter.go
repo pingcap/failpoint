@@ -74,7 +74,7 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 		},
 		Args: []ast.Expr{fpnameExtendCall},
 	}
-	if isNilFunc {
+	if isNilFunc || len(fpbody.Body.List) < 1 {
 		return true, &ast.ExprStmt{X: checkCall}, nil
 	}
 
@@ -162,7 +162,7 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 		},
 		Args: []ast.Expr{ctxname, fpnameExtendCall},
 	}
-	if isNilFunc {
+	if isNilFunc || len(fpbody.Body.List) < 1 {
 		return true, &ast.ExprStmt{X: checkCall}, nil
 	}
 
