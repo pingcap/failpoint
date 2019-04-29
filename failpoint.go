@@ -54,16 +54,18 @@ func WithHook(ctx context.Context, hook Hook) context.Context {
 
 // EvalContext evaluates a failpoint's value, and calls hook if the context is
 // not nil and contains hook function. It will return the evaluated value and
-// true if the failpoint is active
+// true if the failpoint is active. Always returns false if ctx is nil or context
+// does not contains hook function
 func EvalContext(ctx context.Context, fpname string) (Value, bool) {
-	if ctx != nil {
-		hook := ctx.Value(failpointCtxKey)
-		if hook != nil {
-			h, ok := hook.(Hook)
-			if ok && !h(ctx, fpname) {
-				return nil, false
-			}
-		}
+	if ctx == nil {
+		return nil, false
+	}
+	hook, ok := ctx.Value(failpointCtxKey).(Hook)
+	if !ok {
+		return nil, false
+	}
+	if !hook(ctx, fpname) {
+		return nil, false
 	}
 	return Eval(fpname)
 }
