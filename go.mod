@@ -1,7 +1,5 @@
 module github.com/pingcap/failpoint
 
-go 1.12
-
 require (
 	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf // indirect
 	github.com/go-playground/overalls v0.0.0-20180201144345-22ec1a223b7c // indirect
