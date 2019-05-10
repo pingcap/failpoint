@@ -7,6 +7,7 @@ require (
 	github.com/nicksnyder/go-i18n v1.10.0 // indirect
 	github.com/pelletier/go-toml v1.3.0 // indirect
 	github.com/pingcap/check v0.0.0-20190102082844-67f458068fc8
+	github.com/sergi/go-diff v1.0.1-0.20180205163309-da645544ed44
 	github.com/yookoala/realpath v1.0.0 // indirect
 	gopkg.in/alecthomas/gometalinter.v2 v2.0.12 // indirect
 	gopkg.in/alecthomas/kingpin.v3-unstable v3.0.0-20180810215634-df19058c872c // indirect
