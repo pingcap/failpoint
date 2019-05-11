@@ -105,7 +105,12 @@ func (r Restorer) Restore() error {
 		patcher := diffmatchpatch.New()
 		diffs := patcher.DiffMain(buffer.String(), string(rewritedContent), true)
 		patches := patcher.PatchMake(diffs)
-		pathedContent, _ := patcher.PatchApply(patches, string(originContent))
+		pathedContent, results := patcher.PatchApply(patches, string(originContent))
+		for i, result := range results {
+			if !result {
+				return fmt.Errorf("cannot merge modifications back automatically %s", patches[i].String())
+			}
+		}
 		if err := ioutil.WriteFile(filePath, []byte(pathedContent), os.ModePerm); err != nil {
 			return err
 		}
