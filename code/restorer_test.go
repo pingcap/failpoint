@@ -137,6 +137,59 @@ func unittest() {
 }
 `,
 		},
+
+		{
+			filepath: "modified-test-3.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+			modified: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	if val, ok := failpoint.Eval(_curpkg_("failpoint-name-extra-part")); ok {
+		fmt.Println("extra add line")
+		fmt.Println("unit-test", val)
+	}
+	fmt.Println("extra add line2")
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name-extra-part", func(val failpoint.Value) {
+		fmt.Println("extra add line")
+		fmt.Println("unit-test", val)
+	})
+	fmt.Println("extra add line2")
+}
+`,
+		},
 	}
 
 	// Create temp files
@@ -175,4 +228,77 @@ func unittest() {
 		c.Assert(err, IsNil)
 		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.expected), filenameComment(cs.filepath))
 	}
+}
+
+func (s *restorerSuite) TestRestoreModificationBad(c *C) {
+	var cases = []struct {
+		filepath string
+		original string
+		modified string
+	}{
+		{
+			filepath: "bad-modification-test.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+			modified: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	if val, ok := failpoint.EvalContext(nil, _curpkg_("failpoint-name-extra-part")); ok {
+		fmt.Println("extra add line")
+		fmt.Println("unit-test", val)
+	}
+}
+`,
+		},
+	}
+
+	// Create temp files
+	err := os.MkdirAll(s.path, os.ModePerm)
+	c.Assert(err, IsNil)
+	for _, cs := range cases {
+		original := filepath.Join(s.path, cs.filepath)
+		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
+		c.Assert(err, IsNil)
+	}
+
+	// Clean all temp files
+	defer func() {
+		err := os.RemoveAll(s.path)
+		c.Assert(err, IsNil)
+	}()
+
+	rewriter := code.NewRewriter(s.path)
+	err = rewriter.Rewrite()
+	c.Assert(err, IsNil)
+
+	for _, cs := range cases {
+		modified := filepath.Join(s.path, cs.filepath)
+		err := ioutil.WriteFile(modified, []byte(cs.modified), os.ModePerm)
+		c.Assert(err, IsNil)
+	}
+
+	restorer := code.NewRestorer(s.path)
+	err = restorer.Restore()
+	c.Assert(err, NotNil)
+	c.Assert(strings.HasPrefix(err.Error(), `cannot merge modifications back automatically`), IsTrue)
 }
