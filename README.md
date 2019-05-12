@@ -10,6 +10,41 @@ An implementation of [failpoints][failpoint] for Golang.
 
 [failpoint]: http://www.freebsd.org/cgi/man.cgi?query=fail
 
+## Quick Start
+
+1.  Build `failpoint-ctl` from source
+
+    ``` bash
+    git clone https://github.com/pingcap/failpoint.git
+    cd failpoint
+    make
+    ls bin/failpoint-ctl
+    ```
+
+2.  Inject failpoints to your program, eg:
+
+    ``` go
+    package main
+
+    import "github.com/pingcap/failpoint"
+
+    func main() {
+        failpoint.Inject("testPanic", func() {
+            panic("failpoint triggerd")
+        })
+    }
+    ```
+
+3.  Transfrom your code with `failpoint-ctl enable`
+
+4.  Build with `go build`
+
+5.  Enable failpoints with `GO_FAILPOINTS` environment variable
+
+    ``` bash
+    GO_FAILPOINTS="main/testPanic=return(true)" ./your-program
+    ```
+
 ## Design principles
 
 - Define failpoint in valid Golang code, not comments or anything else
