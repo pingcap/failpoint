@@ -34,7 +34,7 @@ func TestNewRewriter(t *testing.T) {
 	TestingT(t)
 }
 
-var _ = Suite(&rewriterSuite{path: "tmp/"})
+var _ = Suite(&rewriterSuite{path: "tmp/rewrite/"})
 
 type rewriterSuite struct {
 	path string

@@ -14,11 +14,14 @@
 package code
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 const (
@@ -82,6 +85,35 @@ func (r Restorer) Restore() error {
 			continue
 		}
 		originFileName := filePath[:len(filePath)-len(failpointStashFileSuffix)]
+		rewritedContent, err := ioutil.ReadFile(originFileName)
+		if err != nil {
+			return err
+		}
+		originContent, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			return err
+		}
+		// Rewrite original file
+		rewriter := NewRewriter(filePath)
+		buffer := &bytes.Buffer{}
+		rewriter.SetOutput(buffer)
+		if err := rewriter.RewriteFile(filePath); err != nil {
+			return err
+		}
+
+		// Merge modifications after `failpoint-ctl enable`
+		patcher := diffmatchpatch.New()
+		diffs := patcher.DiffMain(buffer.String(), string(rewritedContent), true)
+		patches := patcher.PatchMake(diffs)
+		pathedContent, results := patcher.PatchApply(patches, string(originContent))
+		for i, result := range results {
+			if !result {
+				return fmt.Errorf("cannot merge modifications back automatically %s", patches[i].String())
+			}
+		}
+		if err := ioutil.WriteFile(filePath, []byte(pathedContent), os.ModePerm); err != nil {
+			return err
+		}
 		if err := os.Remove(originFileName); err != nil {
 			return err
 		}

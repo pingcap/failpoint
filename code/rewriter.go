@@ -19,6 +19,7 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -48,6 +49,8 @@ type Rewriter struct {
 	currsetFset   *token.FileSet
 	failpointName string
 	rewritten     bool
+
+	output io.Writer
 }
 
 // NewRewriter returns a non-nil rewriter which is used to rewrite the specified path
@@ -55,6 +58,11 @@ func NewRewriter(path string) *Rewriter {
 	return &Rewriter{
 		rewriteDir: path,
 	}
+}
+
+// SetOutput sets a writer and the rewrite results will write to the writer instead of generate a stash file
+func (r *Rewriter) SetOutput(out io.Writer) {
+	r.output = out
 }
 
 func (r *Rewriter) pos(pos token.Pos) string {
@@ -552,7 +560,8 @@ func (r *Rewriter) rewriteFuncDecl(fn *ast.FuncDecl) error {
 	return r.rewriteStmts(fn.Body.List)
 }
 
-func (r *Rewriter) rewriteFile(path string) (err error) {
+// RewriteFile rewrites a single file
+func (r *Rewriter) RewriteFile(path string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("%s %v\n%s", r.currentPath, e, debug.Stack())
@@ -599,6 +608,10 @@ func (r *Rewriter) rewriteFile(path string) (err error) {
 
 	if !r.rewritten {
 		return nil
+	}
+
+	if r.output != nil {
+		return printer.Fprint(r.output, fset, file)
 	}
 
 	// Generate binding code
@@ -684,7 +697,7 @@ func (r *Rewriter) Rewrite() error {
 	}
 
 	for _, file := range files {
-		err := r.rewriteFile(file)
+		err := r.RewriteFile(file)
 		if err != nil {
 			return err
 		}
