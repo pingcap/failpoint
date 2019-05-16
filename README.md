@@ -45,6 +45,18 @@ An implementation of [failpoints][failpoint] for Golang.
     GO_FAILPOINTS="main/testPanic=return(true)" ./your-program
     ```
 
+6.  If you use `go run` to run the test, like:
+
+    ``` bash
+    GO_FAILPOINTS="main/testPanic=return(true)" go run your-program.go
+    ```
+
+    don't forget to add the generated `binding__failpoint_binding__.go` in your command, like:
+
+    ```bash
+    GO_FAILPOINTS="main/testPanic=return(true)" go run your-program.go binding__failpoint_binding__.go
+    ```
+
 ## Design principles
 
 - Define failpoint in valid Golang code, not comments or anything else
