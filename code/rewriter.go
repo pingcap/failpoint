@@ -557,6 +557,9 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 }
 
 func (r *Rewriter) rewriteFuncDecl(fn *ast.FuncDecl) error {
+	if fn.Body == nil {
+		return nil
+	}
 	return r.rewriteStmts(fn.Body.List)
 }
 

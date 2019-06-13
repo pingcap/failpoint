@@ -261,6 +261,50 @@ func unittest() {
 		},
 
 		{
+			filepath: "no-body-function.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+	_ "unsafe"
+
+	"github.com/pingcap/failpoint"
+)
+
+//go:linkname runtimeNano runtime.nanotime
+func runtimeNano() int64
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+		fmt.Println("unit-test", val)
+	})
+	fmt.Printf("nano() runs successfully: %d\n", runtimeNano())
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+	_ "unsafe"
+
+	"github.com/pingcap/failpoint"
+)
+
+//go:linkname runtimeNano runtime.nanotime
+func runtimeNano() int64
+
+func unittest() {
+	if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		fmt.Println("unit-test", val)
+	}
+	fmt.Printf("nano() runs successfully: %d\n", runtimeNano())
+}
+`,
+		},
+
+		{
 			filepath: "simple-assign-with-function.go",
 			original: `
 package rewriter_test
