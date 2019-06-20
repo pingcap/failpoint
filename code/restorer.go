@@ -89,6 +89,9 @@ func (r Restorer) Restore() error {
 		if err != nil {
 			return err
 		}
+		if bytes.HasSuffix(rewritedContent, generatedSourceIndicator) {
+			rewritedContent = rewritedContent[:len(rewritedContent)-len(generatedSourceIndicator)]
+		}
 		originContent, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			return err
@@ -153,6 +156,7 @@ func init() {
 func %s(name string) string {
 	return  __failpointBindingCache.pkgpath + "/" + name
 }
-`, pak, extendPkgName)
+%s
+`, pak, extendPkgName, generatedSourceIndicator)
 	return ioutil.WriteFile(bindingFile, []byte(bindingContent), os.ModePerm)
 }
