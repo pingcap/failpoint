@@ -16,8 +16,8 @@ package code
 import (
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/parser"
-	"go/printer"
 	"go/token"
 	"io"
 	"os"
@@ -614,7 +614,7 @@ func (r *Rewriter) RewriteFile(path string) (err error) {
 	}
 
 	if r.output != nil {
-		return printer.Fprint(r.output, fset, file)
+		return format.Node(r.output, fset, file)
 	}
 
 	// Generate binding code
@@ -640,7 +640,7 @@ func (r *Rewriter) RewriteFile(path string) (err error) {
 		return err
 	}
 	defer newFile.Close()
-	return printer.Fprint(newFile, fset, file)
+	return format.Node(newFile, fset, file)
 }
 
 // Rewrite does the rewrite action for specified path. It contains the main steps:
