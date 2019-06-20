@@ -261,6 +261,62 @@ func unittest() {
 		},
 
 		{
+			filepath: "basic-test-format-code.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+type CustomStruct struct {
+	FieldWithLongName string
+	Key               int
+	Value             interface{}
+}
+
+func unittest() {
+	failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+		cs := &CustomStruct{
+			FieldWithLongName: "name",
+			Key:               12,
+			Value:             []byte("hello"),
+		}
+		fmt.Println("unit-test", val, cs)
+	})
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+type CustomStruct struct {
+	FieldWithLongName string
+	Key               int
+	Value             interface{}
+}
+
+func unittest() {
+	if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		cs := &CustomStruct{
+			FieldWithLongName: "name",
+			Key:               12,
+			Value:             []byte("hello"),
+		}
+		fmt.Println("unit-test", val, cs)
+	}
+}
+`,
+		},
+
+		{
 			filepath: "no-body-function.go",
 			original: `
 package rewriter_test
@@ -1410,8 +1466,8 @@ import (
 )
 
 type Iterator struct {
-	count	int
-	max	int
+	count int
+	max   int
 }
 
 func (i *Iterator) Begin(fn func()) int {
