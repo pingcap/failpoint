@@ -89,6 +89,9 @@ func (r Restorer) Restore() error {
 		if err != nil {
 			return err
 		}
+		if bytes.HasPrefix(rewritedContent, generatedSourceIndicator) {
+			rewritedContent = rewritedContent[len(generatedSourceIndicator):]
+		}
 		originContent, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			return err
@@ -139,7 +142,7 @@ func isBindingFileExists(path string) (bool, error) {
 
 func writeBindingFile(path, pak string) error {
 	bindingFile := failpointBindingPath(path)
-	bindingContent := fmt.Sprintf(`
+	bindingContent := fmt.Sprintf(`%s
 package %s
 
 import "reflect"
@@ -153,6 +156,6 @@ func init() {
 func %s(name string) string {
 	return  __failpointBindingCache.pkgpath + "/" + name
 }
-`, pak, extendPkgName)
+`, generatedSourceIndicator, pak, extendPkgName)
 	return ioutil.WriteFile(bindingFile, []byte(bindingContent), os.ModePerm)
 }
