@@ -103,6 +103,24 @@ An implementation of [failpoints][failpoint] for Golang.
     - `func Return(results ...interface{}) {}`
     - `func Label(label string) {}`
 
+- Supported failpoint environment variable
+
+    failpoint can be enabled by export environment variables with the following patten, which is quite similar to [freebsd failpoint SYSCTL VARIABLES](https://www.freebsd.org/cgi/man.cgi?query=fail)
+
+    ```regexp
+    [<percent>%][<count>*]<type>[(args...)][-><more terms>]
+    ```
+
+    The <type> argument specifies which action to take; it can be one of:
+
+    - off: Take no action (does not trigger failpoint code)
+    - return: Trigger failpoint with specified argument
+    - sleep: Sleep the specified number of milliseconds
+    - panic: Panic
+    - break: Execute gdb and break into debugger
+    - print: Print failpoint path for inject variable
+    - pause: Pause will pause until the failpoint is disabled
+
 ## How to inject a failpoint to your program
 
 - You can call `failpoint.Inject` to inject a failpoint to the call site, where `failpoint-name` is
