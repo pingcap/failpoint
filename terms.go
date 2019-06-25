@@ -42,6 +42,10 @@ var (
 	ErrBadParse = fmt.Errorf("failpoint: could not parse terms")
 )
 
+func init() {
+	rand.Seed(time.Now().Unix())
+}
+
 // terms encodes the state for a failpoint term string (see fail(9) for examples)
 // <fp> :: <term> ( "->" <term> )*
 type terms struct {
@@ -161,8 +165,18 @@ func parseTerm(desc string, fp *failpoint) *term {
 	return t
 }
 
-// <mod> :: ((<float> "%")|(<int> "*" ))*
+// <mod> :: ((<float>|<int> "%")|(<int> "*" ))*
 func parseMod(desc string) (ret string, mods []mod) {
+	applyPercent := func(s string, v float64) {
+		ret = ret + desc[:len(s)+1]
+		mods = append(mods, &modProb{v / 100.0})
+		desc = desc[len(s)+1:]
+	}
+	applyCount := func(s string, v int) {
+		ret = ret + desc[:len(s)+1]
+		mods = append(mods, &modCount{v})
+		desc = desc[len(s)+1:]
+	}
 	for {
 		s, v := parseIntFloat(desc)
 		if len(s) == 0 {
@@ -176,16 +190,16 @@ func parseMod(desc string) (ret string, mods []mod) {
 			if desc[len(s)] != '%' {
 				return "", nil
 			}
-			ret = ret + desc[:len(s)+1]
-			mods = append(mods, &modProb{v / 100.0})
-			desc = desc[len(s)+1:]
+			applyPercent(s, v)
 		case int:
-			if desc[len(s)] != '*' {
+			switch desc[len(s)] {
+			case '%':
+				applyPercent(s, float64(v))
+			case '*':
+				applyCount(s, v)
+			default:
 				return "", nil
 			}
-			ret = ret + desc[:len(s)+1]
-			mods = append(mods, &modCount{v})
-			desc = desc[len(s)+1:]
 		default:
 			panic("???")
 		}
