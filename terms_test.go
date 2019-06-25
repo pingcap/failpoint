@@ -39,6 +39,7 @@ func TestTermsString(t *testing.T) {
 	}{
 		{`off`, []string{""}},
 		{`2*return("abc")`, []string{"abc", "abc", ""}},
+		{`0%return("abc")`, []string{"", "", ""}},
 		{`100%return("abc")`, []string{"abc", "abc", "abc"}},
 		{`100.0%return("abc")`, []string{"abc", "abc", "abc"}},
 		{`100%2*return("abc")`, []string{"abc", "abc", ""}},
