@@ -69,7 +69,7 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 
 	checkCall := &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
-			X:   &ast.Ident{call.Pos(), r.failpointName, nil},
+			X:   &ast.Ident{NamePos: call.Pos(), Name: r.failpointName},
 			Sel: ast.NewIdent(evalFunction),
 		},
 		Args: []ast.Expr{fpnameExtendCall},
@@ -157,7 +157,7 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 
 	checkCall := &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
-			X:   &ast.Ident{call.Pos(), r.failpointName, nil},
+			X:   &ast.Ident{NamePos: call.Pos(), Name: r.failpointName},
 			Sel: ast.NewIdent(evalCtxFunction),
 		},
 		Args: []ast.Expr{ctxname, fpnameExtendCall},
