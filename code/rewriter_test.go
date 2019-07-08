@@ -361,6 +361,54 @@ func unittest() {
 		},
 
 		{
+			filepath: "anonymous-function.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	func() {
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+			fmt.Println("unit-test", val)
+		})
+		func() {
+			failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+				fmt.Println("unit-test", val)
+			})
+		}()
+	}()
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func unittest() {
+	func() {
+		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			fmt.Println("unit-test", val)
+		}
+		func() {
+			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				fmt.Println("unit-test", val)
+			}
+		}()
+	}()
+}
+`,
+		},
+
+		{
 			filepath: "simple-assign-with-function.go",
 			original: `
 package rewriter_test
