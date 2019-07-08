@@ -2163,6 +2163,8 @@ import (
 
 func unittest() {
 	failpoint.Inject("failpoint-name", nil)
+
+	failpoint.Inject("failpoint-name", nil)
 }
 `,
 			expected: `
@@ -2175,6 +2177,8 @@ import (
 )
 
 func unittest() {
+	failpoint.Eval(_curpkg_("failpoint-name"))
+
 	failpoint.Eval(_curpkg_("failpoint-name"))
 }
 `,
@@ -2193,6 +2197,8 @@ import (
 
 func unittest() {
 	failpoint.InjectContext(nil, "failpoint-name", nil)
+
+	failpoint.InjectContext(nil, "failpoint-name", nil)
 }
 `,
 			expected: `
@@ -2205,6 +2211,8 @@ import (
 )
 
 func unittest() {
+	failpoint.EvalContext(nil, _curpkg_("failpoint-name"))
+
 	failpoint.EvalContext(nil, _curpkg_("failpoint-name"))
 }
 `,
