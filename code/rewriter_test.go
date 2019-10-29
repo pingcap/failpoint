@@ -189,6 +189,54 @@ func unittest() {
 		},
 
 		{
+			filepath: "type-check-test-with-ctx.go",
+			original: `
+package rewriter_test
+
+import (
+    "context"
+    "fmt"
+
+    "github.com/pingcap/failpoint"
+)
+
+type S struct {
+    ctx context.Context
+}
+
+const failPoint = "abc"
+
+func (s * S) unittest() {
+    failpoint.InjectContext(s.ctx, failPoint, func(val failpoint.Value) {
+		fmt.Println("unit-test", val)
+	})
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+type S struct {
+	ctx context.Context
+}
+
+const failPoint = "abc"
+
+func (s *S) unittest() {
+	if val, ok := failpoint.EvalContext(s.ctx, _curpkg_(failPoint)); ok {
+		fmt.Println("unit-test", val)
+	}
+}
+`,
+		},
+
+		{
 			filepath: "basic-test-with-ctx-ignore.go",
 			original: `
 package rewriter_test
@@ -2529,7 +2577,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-test6.go",
-			errormsg: `failpoint\.Inject: first argument expect string literal in.*`,
+			errormsg: `failpoint\.Inject: second argument expect closure in.*`,
 			original: `
 package rewriter_test
 
@@ -2587,7 +2635,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test2.go",
-			errormsg: `failpoint\.InjectContext: first argument expect context in.*`,
+			errormsg: `failpoint\.InjectContext: closure signature illegal in.*`,
 			original: `
 package rewriter_test
 
@@ -2607,7 +2655,7 @@ func unittest() {
 
 		{
 			filepath: "bad-basic-ctx-test3.go",
-			errormsg: `failpoint\.InjectContext: second argument expect string literal in.*`,
+			errormsg: `failpoint\.InjectContext: closure signature illegal in.*`,
 			original: `
 package rewriter_test
 
