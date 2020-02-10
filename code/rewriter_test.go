@@ -18,7 +18,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"testing"
 
 	. "github.com/pingcap/check"
 	"github.com/pingcap/failpoint/code"
@@ -28,10 +27,6 @@ type filenameComment string
 
 func (c filenameComment) CheckCommentString() string {
 	return string(c)
-}
-
-func TestNewRewriter(t *testing.T) {
-	TestingT(t)
 }
 
 var _ = Suite(&rewriterSuite{path: "tmp/rewrite/"})

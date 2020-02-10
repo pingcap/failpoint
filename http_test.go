@@ -6,15 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"testing"
 
 	. "github.com/pingcap/check"
 	"github.com/pingcap/failpoint"
 )
-
-func TestHttp(t *testing.T) {
-	TestingT(t)
-}
 
 var _ = Suite(&httpSuite{})
 

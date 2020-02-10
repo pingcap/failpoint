@@ -11,7 +11,7 @@ import (
 	"github.com/pingcap/failpoint/code"
 )
 
-func TestNewRestorer(t *testing.T) {
+func TestCode(t *testing.T) {
 	TestingT(t)
 }
 

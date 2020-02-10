@@ -3,16 +3,11 @@ package failpoint_test
 import (
 	"io/ioutil"
 	"os"
-	"testing"
 	"time"
 
 	. "github.com/pingcap/check"
 	"github.com/pingcap/failpoint"
 )
-
-func TestNewRestorer(t *testing.T) {
-	TestingT(t)
-}
 
 var _ = Suite(&runtimeSuite{})
 
