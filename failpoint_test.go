@@ -2,13 +2,15 @@ package failpoint_test
 
 import (
 	"context"
+	"sync"
 	"testing"
+	"time"
 
 	. "github.com/pingcap/check"
 	"github.com/pingcap/failpoint"
 )
 
-func TestFailpoint(t *testing.T) {
+func TestT(t *testing.T) {
 	TestingT(t)
 }
 
@@ -47,4 +49,27 @@ func (s *failpointSuite) TestWithHook(c *C) {
 	val, ok = failpoint.EvalContext(ctx, "TestWithHook-test-1")
 	c.Assert(ok, IsTrue)
 	c.Assert(val.(int), Equals, 1)
+}
+
+func (s *failpointSuite) TestConcurrent(c *C) {
+	err := failpoint.Enable("TestWithHook-test-2", "pause")
+	c.Assert(err, IsNil)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		ctx := failpoint.WithHook(context.Background(), func(ctx context.Context, fpname string) bool {
+			return true
+		})
+		val, _ := failpoint.EvalContext(ctx, "TestWithHook-test-2")
+		c.Assert(val, IsNil)
+		wg.Done()
+	}()
+	time.Sleep(1 * time.Second)
+	err = failpoint.Enable("TestWithHook-test-3", "return(1)")
+	c.Assert(err, IsNil)
+	err = failpoint.Disable("TestWithHook-test-3")
+	c.Assert(err, IsNil)
+	err = failpoint.Disable("TestWithHook-test-2")
+	c.Assert(err, IsNil)
+	wg.Wait()
 }
