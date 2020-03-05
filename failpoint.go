@@ -35,7 +35,8 @@ type (
 	// failpoint will not to be evaluated.
 	Hook func(ctx context.Context, fpname string) bool
 
-	failpoint struct {
+	// Failpoint TODO
+	Failpoint struct {
 		mu       sync.RWMutex
 		t        *terms
 		waitChan chan struct{}
@@ -43,51 +44,48 @@ type (
 )
 
 // Pause will pause until the failpoint is disabled.
-func (fp *failpoint) Pause() {
+func (fp *Failpoint) Pause() {
 	<-fp.waitChan
 }
 
-// WithHook binds a hook to a new context which is based on the `ctx` parameter
-func WithHook(ctx context.Context, hook Hook) context.Context {
-	return context.WithValue(ctx, failpointCtxKey, hook)
+// Enable sets a failpoint to a given failpoint description.
+func (fp *Failpoint) Enable(inTerms string) error {
+	t, err := newTerms(inTerms, fp)
+	if err != nil {
+		return err
+	}
+	fp.mu.Lock()
+	fp.t = t
+	fp.waitChan = make(chan struct{})
+	fp.mu.Unlock()
+	return nil
 }
 
-// EvalContext evaluates a failpoint's value, and calls hook if the context is
-// not nil and contains hook function. It will return the evaluated value and
-// true if the failpoint is active. Always returns false if ctx is nil or context
-// does not contains hook function
-func EvalContext(ctx context.Context, fpname string) (Value, bool) {
-	if ctx == nil {
-		return nil, false
+// Disable stops a failpoint
+func (fp *Failpoint) Disable() error {
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
+	select {
+	case <-fp.waitChan:
+		return ErrDisabled
+	default:
+		close(fp.waitChan)
 	}
-	hook, ok := ctx.Value(failpointCtxKey).(Hook)
-	if !ok {
-		return nil, false
+	if fp.t == nil {
+		return ErrDisabled
 	}
-	if !hook(ctx, fpname) {
-		return nil, false
-	}
-	return Eval(fpname)
+	fp.t = nil
+	return nil
 }
 
 // Eval evaluates a failpoint's value, It will return the evaluated value and
 // true if the failpoint is active
-func Eval(fpname string) (Value, bool) {
-	failpoints.mu.RLock()
-	fp, found := failpoints.reg[fpname]
-	failpoints.mu.RUnlock()
-	if !found {
-		return nil, false
-	}
-
-	fp.mu.RLock()
-	defer fp.mu.RUnlock()
+func (fp *Failpoint) Eval() (Value, bool) {
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
 	if fp.t == nil {
 		return nil, false
 	}
 	v := fp.t.eval()
-	if v == nil {
-		return nil, false
-	}
 	return v, true
 }

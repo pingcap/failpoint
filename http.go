@@ -63,7 +63,7 @@ func (*HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed ReadAll in PUT", http.StatusBadRequest)
 			return
 		}
-		unlock, eerr := enableAndLock(key, string(v))
+		eerr := failpoints.Enable(key, string(v))
 		if eerr != nil {
 			http.Error(w, "failed to set failpoint "+string(key), http.StatusBadRequest)
 			return
@@ -74,7 +74,7 @@ func (*HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// take down the http server before it sends the response
 			f.Flush()
 		}
-		unlock()
+		// FIXME unlock()
 	// gets status of the failpoint
 	case r.Method == "GET":
 		if len(key) == 0 {

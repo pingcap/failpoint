@@ -47,7 +47,7 @@ func TestTermsString(t *testing.T) {
 		{`1*return("abc")->return("def")`, []string{"abc", "def", "def"}},
 	}
 	for _, tt := range tests {
-		ter, err := newTerms("test", tt.desc, nil)
+		ter, err := newTerms(tt.desc, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -75,7 +75,7 @@ func TestTermsTypes(t *testing.T) {
 		{`return()`, struct{}{}},
 	}
 	for _, tt := range tests {
-		ter, err := newTerms("test", tt.desc, nil)
+		ter, err := newTerms(tt.desc, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

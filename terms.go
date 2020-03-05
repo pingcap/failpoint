@@ -69,7 +69,7 @@ type term struct {
 	val  interface{}
 
 	parent *terms
-	fp     *failpoint
+	fp     *Failpoint
 }
 
 type mod interface {
@@ -101,12 +101,12 @@ func (ml *modList) allow() bool {
 	return true
 }
 
-func newTerms(fpath, desc string, fp *failpoint) (*terms, error) {
+func newTerms(desc string, fp *Failpoint) (*terms, error) {
 	chain := parse(desc, fp)
 	if len(chain) == 0 {
 		return nil, ErrBadParse
 	}
-	t := &terms{chain: chain, desc: desc, fpath: fpath}
+	t := &terms{chain: chain, desc: desc}
 	for _, c := range chain {
 		c.parent = t
 	}
@@ -127,7 +127,7 @@ func (t *terms) eval() Value {
 }
 
 // split terms from a -> b -> ... into [a, b, ...]
-func parse(desc string, fp *failpoint) (chain []*term) {
+func parse(desc string, fp *Failpoint) (chain []*term) {
 	origDesc := desc
 	for len(desc) != 0 {
 		t := parseTerm(desc, fp)
@@ -149,7 +149,7 @@ func parse(desc string, fp *failpoint) (chain []*term) {
 }
 
 // <term> :: <mod> <act> [ "(" <val> ")" ]
-func parseTerm(desc string, fp *failpoint) *term {
+func parseTerm(desc string, fp *Failpoint) *term {
 	t := &term{}
 	modStr, mods := parseMod(desc)
 	t.mods = &modList{mods}
