@@ -41,6 +41,12 @@ var (
 	ErrNoExist = fmt.Errorf("failpoint: failpoint does not exist")
 	// ErrDisabled represents a failpoint is be disabled
 	ErrDisabled = fmt.Errorf("failpoint: failpoint is disabled")
+	// ErrNoContext returns by EvalContext when the context is nil
+	ErrNoContext = fmt.Errorf("failpoint: no context")
+	// ErrNoHook returns by EvalContext when there is no hook in the context
+	ErrNoHook = fmt.Errorf("failpoint: no hook")
+	// ErrFiltered represents a failpoint is filtered by a hook function
+	ErrFiltered = fmt.Errorf("failpoint: filtered by hook")
 )
 
 func init() {
@@ -136,31 +142,35 @@ func (fps *Failpoints) List() []string {
 // not nil and contains hook function. It will return the evaluated value and
 // true if the failpoint is active. Always returns false if ctx is nil
 // or context does not contains a hook function
-func (fps *Failpoints) EvalContext(ctx context.Context, failpath string) (Value, bool) {
+func (fps *Failpoints) EvalContext(ctx context.Context, failpath string) (Value, error) {
 	if ctx == nil {
-		return nil, false
+		return nil, ErrNoContext
 	}
 	hook, ok := ctx.Value(failpointCtxKey).(Hook)
 	if !ok {
-		return nil, false
+		return nil, ErrNoHook
 	}
 	if !hook(ctx, failpath) {
-		return nil, false
+		return nil, ErrFiltered
 	}
 	return fps.Eval(failpath)
 }
 
 // Eval evaluates a failpoint's value, It will return the evaluated value and
 // true if the failpoint is active
-func (fps *Failpoints) Eval(failpath string) (Value, bool) {
+func (fps *Failpoints) Eval(failpath string) (Value, error) {
 	fps.mu.RLock()
 	fp, found := fps.reg[failpath]
 	fps.mu.RUnlock()
 	if !found {
-		return nil, false
+		return nil, ErrNoExist
 	}
 
-	return fp.Eval()
+	val, err := fp.Eval()
+	if err != nil {
+		return nil, fmt.Errorf("%v on %s", err, failpath)
+	}
+	return val, nil
 }
 
 // failpoints is the default
@@ -195,12 +205,23 @@ func WithHook(ctx context.Context, hook Hook) context.Context {
 // not nil and contains hook function. It will return the evaluated value and
 // true if the failpoint is active. Always returns false if ctx is nil
 // or context does not contains hook function
-func EvalContext(ctx context.Context, failpath string) (Value, bool) {
-	return failpoints.EvalContext(ctx, failpath)
+func EvalContext(ctx context.Context, failpath string) (Value, error) {
+	val, err := failpoints.EvalContext(ctx, failpath)
+	// The package level EvalContext usaully be injected into the users
+	// code, in which case the error can not be handled by the generated
+	// code. We print the error here.
+	if err != nil {
+		fmt.Println(err)
+	}
+	return val, err
 }
 
 // Eval evaluates a failpoint's value, It will return the evaluated value and
 // true if the failpoint is active
-func Eval(failpath string) (Value, bool) {
-	return failpoints.Eval(failpath)
+func Eval(failpath string) (Value, error) {
+	val, err := failpoints.Eval(failpath)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return val, nil
 }
