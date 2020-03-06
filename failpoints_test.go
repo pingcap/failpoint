@@ -18,22 +18,22 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 
 	err := fps.Enable("failpoints-test-1", "return(1)")
 	c.Assert(err, IsNil)
-	val, ok := fps.Eval("failpoints-test-1")
-	c.Assert(ok, IsTrue)
+	val, err := fps.Eval("failpoints-test-1")
+	c.Assert(err, IsNil)
 	c.Assert(val.(int), Equals, 1)
 
 	err = fps.Enable("failpoints-test-2", "invalid")
-	c.Assert(err, ErrorMatches, `failpoint: could not parse terms`)
+	c.Assert(err, ErrorMatches, `failpoint: failed to parse \"invalid\" past \"invalid\"`)
 
-	val, ok = fps.Eval("failpoints-test-2")
-	c.Assert(ok, IsFalse)
+	val, err = fps.Eval("failpoints-test-2")
+	c.Assert(err, NotNil)
 	c.Assert(val, IsNil)
 
 	err = fps.Disable("failpoints-test-1")
 	c.Assert(err, IsNil)
 
-	val, ok = fps.Eval("failpoints-test-1")
-	c.Assert(ok, IsFalse)
+	val, err = fps.Eval("failpoints-test-1")
+	c.Assert(err, NotNil)
 	c.Assert(val, IsNil)
 
 	err = fps.Disable("failpoints-test-1")
@@ -52,15 +52,15 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	ch := make(chan struct{})
 	go func() {
 		time.Sleep(time.Second)
-		err := failpoint.Disable("gofail/testPause")
+		err := fps.Disable("gofail/testPause")
 		c.Assert(err, IsNil)
 		close(ch)
 	}()
-	err = failpoint.Enable("gofail/testPause", "pause")
+	err = fps.Enable("gofail/testPause", "pause")
 	c.Assert(err, IsNil)
 	start := time.Now()
-	v, ok := failpoint.Eval("gofail/testPause")
-	c.Assert(ok, IsFalse)
+	v, err := fps.Eval("gofail/testPause")
+	c.Assert(err, IsNil)
 	c.Assert(v, IsNil)
 	c.Assert(time.Since(start), GreaterEqual, 100*time.Millisecond, Commentf("not paused"))
 	<-ch
@@ -69,8 +69,8 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	c.Assert(err, IsNil)
 	var succ int
 	for i := 0; i < 1000; i++ {
-		val, ok = fps.Eval("failpoints-test-4")
-		if ok {
+		val, err = fps.Eval("failpoints-test-4")
+		if err == nil {
 			succ++
 			c.Assert(val.(int), Equals, 5)
 		}
@@ -82,12 +82,12 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	err = fps.Enable("failpoints-test-5", "50*return(5)")
 	c.Assert(err, IsNil)
 	for i := 0; i < 50; i++ {
-		val, ok = fps.Eval("failpoints-test-5")
-		c.Assert(ok, Equals, true)
+		val, err = fps.Eval("failpoints-test-5")
+		c.Assert(err, IsNil)
 		c.Assert(val.(int), Equals, 5)
 	}
-	val, ok = fps.Eval("failpoints-test-5")
-	c.Assert(ok, IsFalse)
+	val, err = fps.Eval("failpoints-test-5")
+	c.Assert(err, NotNil)
 	c.Assert(val, IsNil)
 
 	points := map[string]struct{}{}
@@ -104,33 +104,33 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	c.Assert(err, IsNil)
 	// 50*return(5)
 	for i := 0; i < 50; i++ {
-		val, ok = fps.Eval("failpoints-test-6")
-		c.Assert(ok, IsTrue)
+		val, err = fps.Eval("failpoints-test-6")
+		c.Assert(err, IsNil)
 		c.Assert(val.(int), Equals, 5)
 	}
 	// 1*return(true)
-	val, ok = fps.Eval("failpoints-test-6")
-	c.Assert(ok, IsTrue)
+	val, err = fps.Eval("failpoints-test-6")
+	c.Assert(err, IsNil)
 	c.Assert(val.(bool), IsTrue)
 	// 1*return(false)
-	val, ok = fps.Eval("failpoints-test-6")
-	c.Assert(ok, IsTrue)
+	val, err = fps.Eval("failpoints-test-6")
+	c.Assert(err, IsNil)
 	c.Assert(val.(bool), IsFalse)
 	// 10*return(20)
 	for i := 0; i < 10; i++ {
-		val, ok = fps.Eval("failpoints-test-6")
-		c.Assert(ok, IsTrue)
+		val, err = fps.Eval("failpoints-test-6")
+		c.Assert(err, IsNil)
 		c.Assert(val.(int), Equals, 20)
 	}
-	val, ok = fps.Eval("failpoints-test-6")
-	c.Assert(ok, IsFalse)
+	val, err = fps.Eval("failpoints-test-6")
+	c.Assert(err, NotNil)
 	c.Assert(val, IsNil)
 
-	val, ok = failpoint.Eval("failpoint-env1")
-	c.Assert(ok, IsTrue)
+	val, err = failpoint.Eval("failpoint-env1")
+	c.Assert(err, IsNil)
 	c.Assert(val.(int), Equals, 10)
-	val, ok = failpoint.Eval("failpoint-env2")
-	c.Assert(ok, IsTrue)
+	val, err = failpoint.Eval("failpoint-env2")
+	c.Assert(err, IsNil)
 	c.Assert(val.(bool), IsTrue)
 
 	// Tests for sleep
@@ -144,8 +144,8 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	err = failpoint.Enable("gofail/test-sleep", "sleep(100)")
 	c.Assert(err, IsNil)
 	start = time.Now()
-	v, ok = failpoint.Eval("gofail/test-sleep")
-	c.Assert(ok, IsFalse)
+	v, err = failpoint.Eval("gofail/test-sleep")
+	c.Assert(err, IsNil)
 	c.Assert(v, IsNil)
 	c.Assert(time.Since(start), GreaterEqual, 90*time.Millisecond, Commentf("not sleep"))
 	<-ch
@@ -161,8 +161,8 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	err = failpoint.Enable("gofail/test-sleep2", `sleep("100ms")`)
 	c.Assert(err, IsNil)
 	start = time.Now()
-	v, ok = failpoint.Eval("gofail/test-sleep2")
-	c.Assert(ok, IsFalse)
+	v, err = failpoint.Eval("gofail/test-sleep2")
+	c.Assert(err, IsNil)
 	c.Assert(v, IsNil)
 	c.Assert(time.Since(start), GreaterEqual, 90*time.Millisecond, Commentf("not sleep"))
 	<-ch
@@ -174,8 +174,8 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	os.Stdout = w
 	err = fps.Enable("test-print", `print("hello world")`)
 	c.Assert(err, IsNil)
-	val, ok = fps.Eval("test-print")
-	c.Assert(ok, IsFalse)
+	val, err = fps.Eval("test-print")
+	c.Assert(err, IsNil)
 	c.Assert(val, IsNil)
 	outC := make(chan string)
 	// copy the output in a separate goroutine so printing can't block indefinitely
@@ -195,14 +195,14 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 
 	err = fps.Enable("failpoints-test-7", `return`)
 	c.Assert(err, IsNil)
-	val, ok = fps.Eval("failpoints-test-7")
-	c.Assert(ok, IsTrue)
+	val, err = fps.Eval("failpoints-test-7")
+	c.Assert(err, IsNil)
 	c.Assert(val, Equals, struct{}{})
 
 	err = fps.Enable("failpoints-test-8", `return()`)
 	c.Assert(err, IsNil)
-	val, ok = fps.Eval("failpoints-test-8")
-	c.Assert(ok, IsTrue)
+	val, err = fps.Eval("failpoints-test-8")
+	c.Assert(err, IsNil)
 	c.Assert(val, Equals, struct{}{})
 }
 

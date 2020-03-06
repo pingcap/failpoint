@@ -38,8 +38,8 @@ import (
 )
 
 var (
-	// ErrBadParse represents the terms is not an invalid form
-	ErrBadParse = fmt.Errorf("failpoint: could not parse terms")
+	// ErrNotAllowed prevent a term to be evaled.
+	ErrNotAllowed = fmt.Errorf("failpoint: term is not allowed")
 )
 
 func init() {
@@ -123,7 +123,7 @@ func (t *terms) eval() (Value, error) {
 			return term.do()
 		}
 	}
-	return nil, nil
+	return nil, ErrNotAllowed
 }
 
 // split terms from a -> b -> ... into [a, b, ...]
@@ -132,13 +132,13 @@ func parse(desc string, fp *Failpoint) (chain []*term, err error) {
 	for len(desc) != 0 {
 		t := parseTerm(desc, fp)
 		if t == nil {
-			return nil, fmt.Errorf("failed to parse %q past %q", origDesc, desc)
+			return nil, fmt.Errorf("failpoint: failed to parse %q past %q", origDesc, desc)
 		}
 		desc = desc[len(t.desc):]
 		chain = append(chain, t)
 		if len(desc) >= 2 {
 			if !strings.HasPrefix(desc, "->") {
-				return nil, fmt.Errorf("failed to parse %q past %q, expected \"->\"", origDesc, desc)
+				return nil, fmt.Errorf("failpoint: failed to parse %q past %q, expected \"->\"", origDesc, desc)
 			}
 			desc = desc[2:]
 		}

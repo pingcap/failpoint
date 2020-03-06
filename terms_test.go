@@ -52,8 +52,11 @@ func TestTermsString(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, w := range tt.weval {
-			v := ter.eval()
+			v, err := ter.eval()
 			if v == nil && w == "" {
+				continue
+			}
+			if err != nil {
 				continue
 			}
 			if v.(string) != w {
@@ -79,7 +82,7 @@ func TestTermsTypes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		v := ter.eval()
+		v, _ := ter.eval()
 		if v == nil && tt.weval == nil {
 			continue
 		}
