@@ -61,7 +61,7 @@ import (
 )
 
 func unittest() {
-	if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 		fmt.Println("extra add line")
 		fmt.Println("unit-test", val)
 	}
@@ -112,7 +112,7 @@ import (
 )
 
 func unittest() {
-	if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 		fmt.Println("extra add line")
 		fmt.Println("unit-test", val)
 	}
@@ -165,7 +165,7 @@ import (
 )
 
 func unittest() {
-	if val, ok := failpoint.Eval(_curpkg_("failpoint-name-extra-part")); ok {
+	if val, err := failpoint.Eval(_curpkg_("failpoint-name-extra-part")); err == nil {
 		fmt.Println("extra add line")
 		fmt.Println("unit-test", val)
 	}
@@ -263,7 +263,7 @@ import (
 )
 
 func unittest() {
-	if val, ok := failpoint.EvalContext(nil, _curpkg_("failpoint-name-extra-part")); ok {
+	if val, err := failpoint.EvalContext(nil, _curpkg_("failpoint-name-extra-part")); err == nil {
 		fmt.Println("extra add line")
 		fmt.Println("unit-test", val)
 	}
