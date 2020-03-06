@@ -70,7 +70,7 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	var succ int
 	for i := 0; i < 1000; i++ {
 		val, err = fps.Eval("failpoints-test-4")
-		if err == nil {
+		if err == nil && val != nil {
 			succ++
 			c.Assert(val.(int), Equals, 5)
 		}
@@ -87,7 +87,7 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 		c.Assert(val.(int), Equals, 5)
 	}
 	val, err = fps.Eval("failpoints-test-5")
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 	c.Assert(val, IsNil)
 
 	points := map[string]struct{}{}
@@ -123,7 +123,7 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 		c.Assert(val.(int), Equals, 20)
 	}
 	val, err = fps.Eval("failpoints-test-6")
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 	c.Assert(val, IsNil)
 
 	val, err = failpoint.Eval("failpoint-env1")

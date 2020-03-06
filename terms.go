@@ -37,11 +37,6 @@ import (
 	"time"
 )
 
-var (
-	// ErrNotAllowed prevent a term to be evaled.
-	ErrNotAllowed = fmt.Errorf("failpoint: term is not allowed")
-)
-
 func init() {
 	rand.Seed(time.Now().Unix())
 }
@@ -123,7 +118,7 @@ func (t *terms) eval() (Value, error) {
 			return term.do()
 		}
 	}
-	return nil, ErrNotAllowed
+	return nil, nil
 }
 
 // split terms from a -> b -> ... into [a, b, ...]
