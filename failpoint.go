@@ -63,14 +63,15 @@ func (fp *Failpoint) Enable(inTerms string) error {
 
 // Disable stops a failpoint
 func (fp *Failpoint) Disable() error {
-	fp.mu.Lock()
-	defer fp.mu.Unlock()
 	select {
 	case <-fp.waitChan:
 		return ErrDisabled
 	default:
 		close(fp.waitChan)
 	}
+
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
 	if fp.t == nil {
 		return ErrDisabled
 	}
@@ -81,11 +82,14 @@ func (fp *Failpoint) Disable() error {
 // Eval evaluates a failpoint's value, It will return the evaluated value and
 // true if the failpoint is active
 func (fp *Failpoint) Eval() (Value, bool) {
-	fp.mu.Lock()
-	defer fp.mu.Unlock()
+	fp.mu.RLock()
+	defer fp.mu.RUnlock()
 	if fp.t == nil {
 		return nil, false
 	}
 	v := fp.t.eval()
+	if v == nil {
+		return nil, false
+	}
 	return v, true
 }

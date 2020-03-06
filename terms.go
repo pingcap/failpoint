@@ -382,6 +382,6 @@ func actBreak(t *term) interface{} {
 }
 
 func actPrint(t *term) interface{} {
-	fmt.Println("failpoint print:", t.parent.fpath)
+	fmt.Println("failpoint print:", t.val)
 	return nil
 }

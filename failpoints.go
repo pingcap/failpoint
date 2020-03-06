@@ -79,6 +79,10 @@ func (fps *Failpoints) Enable(failpath, inTerms string) error {
 	fps.mu.Lock()
 	fps.mu.Unlock()
 
+	if fps.reg == nil {
+		fps.reg = make(map[string]*Failpoint)
+	}
+
 	fp := fps.reg[failpath]
 	if fp == nil {
 		fp = &Failpoint{}
@@ -150,7 +154,7 @@ func (fps *Failpoints) EvalContext(ctx context.Context, failpath string) (Value,
 // true if the failpoint is active
 func (fps *Failpoints) Eval(failpath string) (Value, bool) {
 	fps.mu.RLock()
-	fp, found := failpoints.reg[failpath]
+	fp, found := fps.reg[failpath]
 	fps.mu.RUnlock()
 	if !found {
 		return nil, false
