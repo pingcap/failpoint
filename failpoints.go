@@ -97,6 +97,26 @@ func (fps *Failpoints) Enable(failpath, inTerms string) error {
 	return fp.Enable(inTerms)
 }
 
+// EnableAndLock enables and locks the failpoint, the lock prevents
+// the failpoint to be evaled. It returns an unlock function or an
+// error if there is. It is useful when enables a panic failpoint
+// and does some post actions before the failpoint being evaled.
+func (fps *Failpoints) EnableAndLock(failpath, inTerms string) (func(), error) {
+	fps.mu.Lock()
+	fps.mu.Unlock()
+
+	if fps.reg == nil {
+		fps.reg = make(map[string]*Failpoint)
+	}
+
+	fp := fps.reg[failpath]
+	if fp == nil {
+		fp = &Failpoint{}
+		fps.reg[failpath] = fp
+	}
+	return fp.EnableAndLock(inTerms)
+}
+
 // Disable a failpoint on failpath
 func (fps *Failpoints) Disable(failpath string) error {
 	fps.mu.Lock()
@@ -179,6 +199,14 @@ var failpoints Failpoints
 // Enable sets a failpoint to a given failpoint description.
 func Enable(failpath, inTerms string) error {
 	return failpoints.Enable(failpath, inTerms)
+}
+
+// EnableAndLock enables and locks the failpoint, the lock prevents
+// the failpoint to be evaled. It returns an unlock function or an
+// error if there is. It is useful when enables a panic failpoint
+// and does some post actions before the failpoint being evaled
+func EnableAndLock(failpath, inTerms string) (func(), error) {
+	return failpoints.EnableAndLock(failpath, inTerms)
 }
 
 // Disable stops a failpoint from firing.
