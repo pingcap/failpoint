@@ -97,11 +97,11 @@ func (fp *Failpoint) Disable() error {
 // Eval evaluates a failpoint's value, It will return the evaluated value or
 // an error if the failpoint is disabled or failed to eval
 func (fp *Failpoint) Eval() (Value, error) {
-	fp.mu.RLock()
-	defer fp.mu.RUnlock()
 	if fp.t == nil {
 		return nil, ErrDisabled
 	}
+	fp.mu.RLock()
+	defer fp.mu.RUnlock()
 	v, err := fp.t.eval()
 	if err != nil {
 		return nil, err

@@ -48,9 +48,6 @@ type terms struct {
 	chain []*term
 	// desc is the full term given for the failpoint
 	desc string
-	// fpath is the failpoint path for these terms
-	fpath string
-
 	// mu protects the state of the terms chain
 	mu sync.Mutex
 }
