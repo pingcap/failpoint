@@ -35,7 +35,7 @@ type (
 	// failpoint will not to be evaluated.
 	Hook func(ctx context.Context, fpname string) bool
 
-	// Failpoint TODO
+	// Failpoint is a point to inject a failure
 	Failpoint struct {
 		mu       sync.RWMutex
 		t        *terms
