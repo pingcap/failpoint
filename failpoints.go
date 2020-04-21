@@ -37,8 +37,8 @@ import (
 )
 
 var (
-	// ErrNoExist represents can not found a failpoint by specified name
-	ErrNoExist = fmt.Errorf("failpoint: failpoint does not exist")
+	// ErrNotExist represents a failpoint can not be found by specified name
+	ErrNotExist = fmt.Errorf("failpoint: failpoint does not exist")
 	// ErrDisabled represents a failpoint is be disabled
 	ErrDisabled = fmt.Errorf("failpoint: failpoint is disabled")
 	// ErrNoContext returns by EvalContext when the context is nil
