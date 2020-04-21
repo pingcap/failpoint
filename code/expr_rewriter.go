@@ -108,7 +108,11 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 		Tok: token.DEFINE,
 	}
 
-	cond := ast.NewIdent("err == nil")
+	cond := &ast.BinaryExpr{
+		X:  err,
+		Op: token.EQL,
+		Y:  ast.NewIdent("nil"),
+	}
 	stmt := &ast.IfStmt{
 		If:   call.Pos(),
 		Init: init,
@@ -201,7 +205,11 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 		Tok: token.DEFINE,
 	}
 
-	cond := ast.NewIdent("err == nil")
+	cond := &ast.BinaryExpr{
+		X:  err,
+		Op: token.EQL,
+		Y:  ast.NewIdent("nil"),
+	}
 	stmt := &ast.IfStmt{
 		If:   call.Pos(),
 		Init: init,
