@@ -63,18 +63,19 @@ func (*HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed ReadAll in PUT", http.StatusBadRequest)
 			return
 		}
-		unlock, eerr := failpoints.EnableAndLock(key, string(v))
-		if eerr != nil {
+		err = failpoints.EnableWith(key, string(v), func() error {
+			w.WriteHeader(http.StatusNoContent)
+			if f, ok := w.(http.Flusher); ok {
+				// flush before unlocking so a panic failpoint won't
+				// take down the http server before it sends the response
+				f.Flush()
+			}
+			return nil
+		})
+		if err != nil {
 			http.Error(w, "failed to set failpoint "+string(key), http.StatusBadRequest)
 			return
 		}
-		w.WriteHeader(http.StatusNoContent)
-		if f, ok := w.(http.Flusher); ok {
-			// flush before unlocking so a panic failpoint won't
-			// take down the http server before it sends the response
-			f.Flush()
-		}
-		unlock()
 	case r.Method == "GET":
 		if len(key) == 0 {
 			fps := List()

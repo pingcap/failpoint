@@ -61,19 +61,23 @@ func (fp *Failpoint) Enable(inTerms string) error {
 	return nil
 }
 
-// EnableAndLock enables and locks the failpoint, the lock prevents
-// the failpoint to be evaluated. It returns an unlock function or an
-// error if there is. It is useful when enables a panic failpoint
+// EnableWith enables and locks the failpoint, the lock prevents
+// the failpoint to be evaluated. It invokes the action while holding
+// the lock. It is useful when enables a panic failpoint
 // and does some post actions before the failpoint being evaluated.
-func (fp *Failpoint) EnableAndLock(inTerms string) (func(), error) {
+func (fp *Failpoint) EnableWith(inTerms string, action func() error) error {
 	t, err := newTerms(inTerms, fp)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	fp.mu.Lock()
+	defer fp.mu.Unlock()
 	fp.t = t
 	fp.waitChan = make(chan struct{})
-	return fp.mu.Unlock, nil
+	if err := action(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Disable stops a failpoint

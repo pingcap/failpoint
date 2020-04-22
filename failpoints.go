@@ -97,13 +97,13 @@ func (fps *Failpoints) Enable(failpath, inTerms string) error {
 	return fp.Enable(inTerms)
 }
 
-// EnableAndLock enables and locks the failpoint, the lock prevents
-// the failpoint to be evaled. It returns an unlock function or an
-// error if there is. It is useful when enables a panic failpoint
-// and does some post actions before the failpoint being evaled.
-func (fps *Failpoints) EnableAndLock(failpath, inTerms string) (func(), error) {
+// EnableWith enables and locks the failpoint, the lock prevents
+// the failpoint to be evaluated. It invokes the action while holding
+// the lock. It is useful when enables a panic failpoint
+// and does some post actions before the failpoint being evaluated.
+func (fps *Failpoints) EnableWith(failpath, inTerms string, action func() error) error {
 	fps.mu.Lock()
-	fps.mu.Unlock()
+	defer fps.mu.Unlock()
 
 	if fps.reg == nil {
 		fps.reg = make(map[string]*Failpoint)
@@ -114,7 +114,7 @@ func (fps *Failpoints) EnableAndLock(failpath, inTerms string) (func(), error) {
 		fp = &Failpoint{}
 		fps.reg[failpath] = fp
 	}
-	return fp.EnableAndLock(inTerms)
+	return fp.EnableWith(inTerms, action)
 }
 
 // Disable a failpoint on failpath
@@ -201,12 +201,12 @@ func Enable(failpath, inTerms string) error {
 	return failpoints.Enable(failpath, inTerms)
 }
 
-// EnableAndLock enables and locks the failpoint, the lock prevents
-// the failpoint to be evaled. It returns an unlock function or an
-// error if there is. It is useful when enables a panic failpoint
-// and does some post actions before the failpoint being evaled
-func EnableAndLock(failpath, inTerms string) (func(), error) {
-	return failpoints.EnableAndLock(failpath, inTerms)
+// EnableWith enables and locks the failpoint, the lock prevents
+// the failpoint to be evaluated. It invokes the action while holding
+// the lock. It is useful when enables a panic failpoint
+// and does some post actions before the failpoint being evaluated.
+func EnableWith(failpath, inTerms string, action func() error) error {
+	return failpoints.EnableWith(failpath, inTerms, action)
 }
 
 // Disable stops a failpoint from firing.
