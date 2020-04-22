@@ -62,9 +62,9 @@ func (fp *Failpoint) Enable(inTerms string) error {
 }
 
 // EnableAndLock enables and locks the failpoint, the lock prevents
-// the failpoint to be evaled. It returns an unlock function or an
+// the failpoint to be evaluated. It returns an unlock function or an
 // error if there is. It is useful when enables a panic failpoint
-// and does some post actions before the failpoint being evaled.
+// and does some post actions before the failpoint being evaluated.
 func (fp *Failpoint) EnableAndLock(inTerms string) (func(), error) {
 	t, err := newTerms(inTerms, fp)
 	if err != nil {
