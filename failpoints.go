@@ -83,7 +83,7 @@ type Failpoints struct {
 // Enable a failpoint on failpath
 func (fps *Failpoints) Enable(failpath, inTerms string) error {
 	fps.mu.Lock()
-	fps.mu.Unlock()
+	defer fps.mu.Unlock()
 
 	if fps.reg == nil {
 		fps.reg = make(map[string]*Failpoint)
@@ -120,7 +120,7 @@ func (fps *Failpoints) EnableWith(failpath, inTerms string, action func() error)
 // Disable a failpoint on failpath
 func (fps *Failpoints) Disable(failpath string) error {
 	fps.mu.Lock()
-	fps.mu.Unlock()
+	defer fps.mu.Unlock()
 
 	fp := fps.reg[failpath]
 	if fp == nil {
