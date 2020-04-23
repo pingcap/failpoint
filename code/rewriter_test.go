@@ -68,7 +68,7 @@ import (
 )
 
 func unittest() {
-	if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 		fmt.Println("unit-test", val)
 	}
 }
@@ -102,7 +102,7 @@ import (
 )
 
 func unittest() {
-	if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 		fmt.Println("unit-test")
 	}
 }
@@ -136,7 +136,7 @@ import (
 )
 
 func unittest() {
-	if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 		fmt.Println("unit-test")
 	}
 }
@@ -176,7 +176,7 @@ import (
 var ctx = context.Background()
 
 func unittest() {
-	if val, ok := failpoint.EvalContext(ctx, _curpkg_("failpoint-name")); ok {
+	if val, err := failpoint.EvalContext(ctx, _curpkg_("failpoint-name")); err == nil {
 		fmt.Println("unit-test", val)
 	}
 }
@@ -224,7 +224,7 @@ type S struct {
 const failPoint = "abc"
 
 func (s *S) unittest() {
-	if val, ok := failpoint.EvalContext(s.ctx, _curpkg_(failPoint)); ok {
+	if val, err := failpoint.EvalContext(s.ctx, _curpkg_(failPoint)); err == nil {
 		fmt.Println("unit-test", val)
 	}
 }
@@ -260,7 +260,7 @@ import (
 )
 
 func unittest() {
-	if val, ok := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); ok {
+	if val, err := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); err == nil {
 		fmt.Println("unit-test", val)
 	}
 }
@@ -296,7 +296,7 @@ import (
 )
 
 func unittest() {
-	if _, ok := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); ok {
+	if _, err := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); err == nil {
 		fmt.Println("unit-test")
 	}
 }
@@ -347,7 +347,7 @@ type CustomStruct struct {
 }
 
 func unittest() {
-	if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 		cs := &CustomStruct{
 			FieldWithLongName: "name",
 			Key:               12,
@@ -395,7 +395,7 @@ import (
 func runtimeNano() int64
 
 func unittest() {
-	if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 		fmt.Println("unit-test", val)
 	}
 	fmt.Printf("nano() runs successfully: %d\n", runtimeNano())
@@ -438,11 +438,11 @@ import (
 
 func unittest() {
 	func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		func() {
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val)
 			}
 		}()
@@ -487,11 +487,11 @@ import (
 
 func unittest() {
 	var _, f1, f2 = 10, func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}, func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}
@@ -537,11 +537,11 @@ import (
 
 func unittest() {
 	_, f1, f2 := 10, func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}, func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}
@@ -581,7 +581,7 @@ import (
 
 func unittest() {
 	go func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}()
@@ -623,11 +623,11 @@ import (
 
 func unittest() {
 	go func(_ func()) {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}(func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	})
@@ -665,7 +665,7 @@ import (
 
 func unittest() {
 	defer func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}()
@@ -707,11 +707,11 @@ import (
 
 func unittest() {
 	defer func(_ func()) {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}(func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	})
@@ -754,11 +754,11 @@ import (
 
 func unittest() {
 	return func() (func(), int) {
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val)
 			}
 		}, func() int {
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val)
 			}
 			return 1000
@@ -809,15 +809,15 @@ import (
 func unittest() {
 	x := rand.Float32()
 	if x > 0.5 {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	} else if x > 0.2 {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	} else {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}
@@ -862,12 +862,12 @@ import (
 
 func unittest() {
 	if a, b := func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}, func() int { return rand.Intn(200) }(); b > 100 {
 		a()
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}
@@ -922,22 +922,22 @@ import (
 
 func unittest() {
 	if a, b := func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}, func() int { return rand.Intn(200) }(); b > func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(3000)
 	}() && b < func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(6000)
 	}() {
 		a()
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}
@@ -987,12 +987,12 @@ const success = 200
 func unittest() {
 	var i int
 	if func(v *int) {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		*v = success
 	}(&i); i == success {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		fmt.Printf("i = %d success\n", i)
@@ -1059,33 +1059,33 @@ import (
 
 func unittest() {
 	switch x, y := rand.Intn(10), func() int { return rand.Intn(1000) }(); x - y + func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(50)
 	}() {
 	case func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(5)
 	}(), func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(8)
 	}():
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	default:
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}
@@ -1156,36 +1156,36 @@ import (
 
 func unittest() {
 	switch x, y := rand.Intn(10), func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(1000)
 	}(); func(x, y int) int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(50) + x + y
 	}(x, y) {
 	case func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(5)
 	}(), func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(8)
 	}():
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	default:
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		fn := func() {
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val)
 			}
 		}
@@ -1271,19 +1271,19 @@ import (
 func unittest() {
 	typeSwitch := func(i interface{}) {
 		inner := func(i interface{}) interface{} {
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val)
 			}
 			return i
 		}
 		switch t := inner(i).(type) {
 		case int:
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val)
 			}
 			fmt.Println("int type")
 		default:
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val)
 			}
 			fmt.Printf("unsupported type %T\n", t)
@@ -1293,7 +1293,7 @@ func unittest() {
 	typeSwitch2 := func(i interface{}) {
 		switch i.(type) {
 		case int:
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val)
 			}
 			fmt.Println("int type")
@@ -1302,13 +1302,13 @@ func unittest() {
 
 	typeSwitch3 := func(i interface{}) {
 		switch func(inf interface{}) {
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val)
 			}
 			return inf
 		}(i).(type) {
 		case int:
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val)
 			}
 			fmt.Println("int type")
@@ -1387,37 +1387,37 @@ import (
 func unittest() {
 	select {
 	case ch := <-func() chan bool {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return make(chan bool)
 	}():
 		fmt.Println(ch)
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 
 	case <-func() chan bool {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return make(chan bool)
 	}():
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 
 	case <-func() chan bool {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return make(chan bool)
 	}():
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	default:
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}
@@ -1472,22 +1472,22 @@ import (
 
 func unittest() {
 	for i := func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(100)
 	}(); i < func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(10000)
 	}(); i += func() int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return rand.Intn(100)
 	}() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}
@@ -1581,15 +1581,15 @@ func (i *Iterator) End(fn func()) bool {
 func unittest() {
 	iter := &Iterator{max: 10}
 	for iter.Begin(func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}); !iter.End(func() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 	}); {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		i := iter.Next(func() {})
@@ -1642,16 +1642,16 @@ import (
 
 func unittest() {
 	for x, y := range func() map[int]int {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		return make(map[int]int, rand.Intn(10))
 	}() {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test", val)
 		}
 		fn := func() {
-			if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				fmt.Println("unit-test", val, x, y)
 			}
 		}
@@ -1742,7 +1742,7 @@ outer:
 			case j / 10:
 				goto outer
 			default:
-				if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 					fmt.Println("unit-test", val.(int))
 					if val == j/11 {
 						goto inner
@@ -1789,7 +1789,7 @@ import (
 
 func unittest() {
 	{
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			fmt.Println("unit-test")
 		}
 	}
@@ -1835,12 +1835,12 @@ import (
 
 func unittest() {
 	func() chan struct{} {
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return make(chan struct{}, 1)
 		}
 		return make(chan struct{}, 1)
 	}() <- func() struct{} {
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return struct{}{}
 		}
 		return struct{}{}
@@ -1923,12 +1923,12 @@ import (
 func unittest() {
 labelSend:
 	func() chan struct{} {
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return make(chan struct{}, 1)
 		}
 		return make(chan struct{}, 1)
 	}() <- func() struct{} {
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return struct{}{}
 		}
 		return struct{}{}
@@ -1949,7 +1949,7 @@ labelFor:
 		if i%rand.Intn(2) == i {
 		labelIf:
 			if rand.Intn(1000) > 500 {
-				if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+				if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 					fmt.Println("output in failpoint")
 				}
 				goto labelIf
@@ -1964,7 +1964,7 @@ labelFor:
 	}
 
 labelCall:
-	if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 		fmt.Println("output in failpoint")
 	}
 }
@@ -2010,12 +2010,12 @@ import (
 
 func unittest() {
 	x := func() []int {
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return make([]int, 1)
 		}
 		return make([]int, 10)
 	}()[func() int {
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return rand.Intn(1)
 		}
 		return rand.Intn(10)
@@ -2069,17 +2069,17 @@ import (
 
 func unittest() {
 	x := func() []int {
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return make([]int, 1)
 		}
 		return make([]int, 10)
 	}()[func() int {
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return rand.Intn(1)
 		}
 		return rand.Intn(10)
 	}():func() int {
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return rand.Intn(1)
 		}
 		return rand.Intn(10)
@@ -2129,7 +2129,7 @@ func unittest() {
 		A string
 	}
 	x := *func() *X {
-		if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return &X{A: "from-failpoint"}
 		}
 		return &X{A: "normal path"}
@@ -2182,7 +2182,7 @@ func unittest() {
 	}
 	x := X{
 		A: func() string {
-			if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+			if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 				return "from-failpoint"
 			}
 			return "from-normal-path"
@@ -2288,7 +2288,7 @@ import (
 )
 
 func unittest() (int, int, error) {
-	if _, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 		return 123, 456, errors.New("something")
 	}
 }
@@ -2322,7 +2322,7 @@ import (
 )
 
 func unittest() (int, int, error) {
-	if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 		return val.(int), 456, errors.New("something")
 	}
 }
@@ -2366,7 +2366,7 @@ func unittest() {
 		Y int
 	}
 	func() *X {
-		if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+		if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
 			return &X{Y: val.(int)}
 		}
 		return &X{Y: 100}
