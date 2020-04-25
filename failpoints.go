@@ -245,11 +245,11 @@ func EvalContext(ctx context.Context, failpath string) (Value, error) {
 }
 
 // Eval evaluates a failpoint's value, It will return the evaluated value and
-// true if the failpoint is active
+// nil err if the failpoint is active
 func Eval(failpath string) (Value, error) {
 	val, err := failpoints.Eval(failpath)
 	if err != nil {
 		fmt.Println(err)
 	}
-	return val, nil
+	return val, err
 }

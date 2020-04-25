@@ -126,6 +126,10 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(val, IsNil)
 
+	val, err = fps.Eval("failpoints-test-7")
+	c.Assert(err, Equals, failpoint.ErrNotExist)
+	c.Assert(val, IsNil)
+
 	val, err = failpoint.Eval("failpoint-env1")
 	c.Assert(err, IsNil)
 	c.Assert(val.(int), Equals, 10)
