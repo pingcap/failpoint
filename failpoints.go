@@ -251,5 +251,5 @@ func Eval(failpath string) (Value, error) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	return val, nil
+	return val, err
 }
