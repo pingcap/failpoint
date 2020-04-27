@@ -186,11 +186,7 @@ func (fps *Failpoints) Eval(failpath string) (Value, error) {
 		return nil, ErrNotExist
 	}
 
-	val, err := fp.Eval()
-	if err != nil {
-		return nil, fmt.Errorf("%v on %s", err, failpath)
-	}
-	return val, nil
+	return fp.Eval()
 }
 
 // failpoints is the default
@@ -238,8 +234,13 @@ func EvalContext(ctx context.Context, failpath string) (Value, error) {
 	// The package level EvalContext usaully be injected into the users
 	// code, in which case the error can not be handled by the generated
 	// code. We print the error here.
-	if err != nil {
-		fmt.Println(err)
+	if err != nil &&
+		err != ErrDisabled &&
+		err != ErrNotExist &&
+		err != ErrNoHook &&
+		err != ErrNoContext &&
+		err != ErrFiltered {
+		fmt.Printf("%v on %s\n", err, failpath)
 	}
 	return val, err
 }
@@ -252,8 +253,9 @@ func Eval(failpath string) (Value, error) {
 		err != ErrDisabled &&
 		err != ErrNotExist &&
 		err != ErrNoHook &&
-		err != ErrNoContext {
-		fmt.Println(err)
+		err != ErrNoContext &&
+		err != ErrFiltered {
+		fmt.Printf("%v on %s\n", err, failpath)
 	}
 	return val, err
 }
