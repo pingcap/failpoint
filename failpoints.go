@@ -249,7 +249,9 @@ func EvalContext(ctx context.Context, failpath string) (Value, error) {
 func Eval(failpath string) (Value, error) {
 	val, err := failpoints.Eval(failpath)
 	if err != nil {
-		fmt.Println(err)
+		if err != ErrDisabled && err != ErrNotExist {
+			fmt.Println(err)
+		}
 	}
 	return val, err
 }
