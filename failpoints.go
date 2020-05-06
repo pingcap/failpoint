@@ -52,6 +52,8 @@ var (
 	ErrNoHook FpError = fmt.Errorf("failpoint: no hook")
 	// ErrFiltered represents a failpoint is filtered by a hook function
 	ErrFiltered FpError = fmt.Errorf("failpoint: filtered by hook")
+	// ErrNotAllowed represents a failpoint can not be executed this time
+	ErrNotAllowed FpError = fmt.Errorf("failpoint: not allowed")
 )
 
 func init() {

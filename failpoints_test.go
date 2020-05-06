@@ -88,7 +88,7 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 		c.Assert(val.(int), Equals, 5)
 	}
 	val, err = fps.Eval("failpoints-test-5")
-	c.Assert(err, IsNil)
+	c.Assert(errors.Cause(err), Equals, failpoint.ErrNotAllowed)
 	c.Assert(val, IsNil)
 
 	points := map[string]struct{}{}
@@ -124,7 +124,7 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 		c.Assert(val.(int), Equals, 20)
 	}
 	val, err = fps.Eval("failpoints-test-6")
-	c.Assert(err, IsNil)
+	c.Assert(errors.Cause(err), Equals, failpoint.ErrNotAllowed)
 	c.Assert(val, IsNil)
 
 	val, err = fps.Eval("failpoints-test-7")
