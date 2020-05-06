@@ -36,17 +36,20 @@ import (
 	"sync"
 )
 
+// FpError is the internal error of failpoint
+type FpError error
+
 var (
 	// ErrNotExist represents a failpoint can not be found by specified name
-	ErrNotExist = fmt.Errorf("failpoint: failpoint does not exist")
+	ErrNotExist FpError = fmt.Errorf("failpoint: failpoint does not exist")
 	// ErrDisabled represents a failpoint is be disabled
-	ErrDisabled = fmt.Errorf("failpoint: failpoint is disabled")
+	ErrDisabled FpError = fmt.Errorf("failpoint: failpoint is disabled")
 	// ErrNoContext returns by EvalContext when the context is nil
-	ErrNoContext = fmt.Errorf("failpoint: no context")
+	ErrNoContext FpError = fmt.Errorf("failpoint: no context")
 	// ErrNoHook returns by EvalContext when there is no hook in the context
-	ErrNoHook = fmt.Errorf("failpoint: no hook")
+	ErrNoHook FpError = fmt.Errorf("failpoint: no hook")
 	// ErrFiltered represents a failpoint is filtered by a hook function
-	ErrFiltered = fmt.Errorf("failpoint: filtered by hook")
+	ErrFiltered FpError = fmt.Errorf("failpoint: filtered by hook")
 )
 
 func init() {
@@ -234,12 +237,7 @@ func EvalContext(ctx context.Context, failpath string) (Value, error) {
 	// The package level EvalContext usaully be injected into the users
 	// code, in which case the error can not be handled by the generated
 	// code. We print the error here.
-	if err != nil &&
-		err != ErrDisabled &&
-		err != ErrNotExist &&
-		err != ErrNoHook &&
-		err != ErrNoContext &&
-		err != ErrFiltered {
+	if err, ok := err.(FpError); !ok && err != nil {
 		fmt.Printf("%v on %s\n", err, failpath)
 	}
 	return val, err
@@ -249,12 +247,7 @@ func EvalContext(ctx context.Context, failpath string) (Value, error) {
 // nil err if the failpoint is active
 func Eval(failpath string) (Value, error) {
 	val, err := failpoints.Eval(failpath)
-	if err != nil &&
-		err != ErrDisabled &&
-		err != ErrNotExist &&
-		err != ErrNoHook &&
-		err != ErrNoContext &&
-		err != ErrFiltered {
+	if err, ok := err.(FpError); !ok && err != nil {
 		fmt.Printf("%v on %s\n", err, failpath)
 	}
 	return val, err
