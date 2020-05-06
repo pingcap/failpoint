@@ -6,6 +6,7 @@ import (
 	"time"
 
 	. "github.com/pingcap/check"
+	"github.com/pingcap/errors"
 	"github.com/pingcap/failpoint"
 )
 
@@ -23,7 +24,7 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	c.Assert(val.(int), Equals, 1)
 
 	err = fps.Enable("failpoints-test-2", "invalid")
-	c.Assert(err, ErrorMatches, `failpoint: failed to parse \"invalid\" past \"invalid\"`)
+	c.Assert(err, ErrorMatches, `error on failpoints-test-2: failpoint: failed to parse \"invalid\" past \"invalid\"`)
 
 	val, err = fps.Eval("failpoints-test-2")
 	c.Assert(err, NotNil)
@@ -37,7 +38,7 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	c.Assert(val, IsNil)
 
 	err = fps.Disable("failpoints-test-1")
-	c.Assert(err, ErrorMatches, `failpoint: failpoint is disabled`)
+	c.Assert(err, ErrorMatches, `error on failpoints-test-1: failpoint: failpoint is disabled`)
 
 	err = fps.Enable("failpoints-test-1", "return(1)")
 	c.Assert(err, IsNil)
@@ -127,7 +128,7 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 	c.Assert(val, IsNil)
 
 	val, err = fps.Eval("failpoints-test-7")
-	c.Assert(err, Equals, failpoint.ErrNotExist)
+	c.Assert(errors.Cause(err), Equals, failpoint.ErrNotExist)
 	c.Assert(val, IsNil)
 
 	val, err = failpoint.Eval("failpoint-env1")

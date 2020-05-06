@@ -34,6 +34,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/pingcap/errors"
 )
 
 // FpError is the internal error of failpoint
@@ -97,7 +99,11 @@ func (fps *Failpoints) Enable(failpath, inTerms string) error {
 		fp = &Failpoint{}
 		fps.reg[failpath] = fp
 	}
-	return fp.Enable(inTerms)
+	err := fp.Enable(inTerms)
+	if err != nil {
+		return errors.Wrapf(err, "error on %s", failpath)
+	}
+	return nil
 }
 
 // EnableWith enables and locks the failpoint, the lock prevents
@@ -117,7 +123,11 @@ func (fps *Failpoints) EnableWith(failpath, inTerms string, action func() error)
 		fp = &Failpoint{}
 		fps.reg[failpath] = fp
 	}
-	return fp.EnableWith(inTerms, action)
+	err := fp.EnableWith(inTerms, action)
+	if err != nil {
+		return errors.Wrapf(err, "error on %s", failpath)
+	}
+	return nil
 }
 
 // Disable a failpoint on failpath
@@ -127,9 +137,13 @@ func (fps *Failpoints) Disable(failpath string) error {
 
 	fp := fps.reg[failpath]
 	if fp == nil {
-		return ErrDisabled
+		return errors.Wrapf(ErrDisabled, "error on %s", failpath)
 	}
-	return fp.Disable()
+	err := fp.Disable()
+	if err != nil {
+		return errors.Wrapf(err, "error on %s", failpath)
+	}
+	return nil
 }
 
 // Status gives the current setting for the failpoint
@@ -138,13 +152,13 @@ func (fps *Failpoints) Status(failpath string) (string, error) {
 	fp := fps.reg[failpath]
 	fps.mu.RUnlock()
 	if fp == nil {
-		return "", ErrNotExist
+		return "", errors.Wrapf(ErrNotExist, "error on %s", failpath)
 	}
 	fp.mu.RLock()
 	t := fp.t
 	fp.mu.RUnlock()
 	if t == nil {
-		return "", ErrDisabled
+		return "", errors.Wrapf(ErrDisabled, "error on %s", failpath)
 	}
 	return t.desc, nil
 }
@@ -167,16 +181,20 @@ func (fps *Failpoints) List() []string {
 // or context does not contains a hook function
 func (fps *Failpoints) EvalContext(ctx context.Context, failpath string) (Value, error) {
 	if ctx == nil {
-		return nil, ErrNoContext
+		return nil, errors.Wrapf(ErrNoContext, "error on %s", failpath)
 	}
 	hook, ok := ctx.Value(failpointCtxKey).(Hook)
 	if !ok {
-		return nil, ErrNoHook
+		return nil, errors.Wrapf(ErrNoHook, "error on %s", failpath)
 	}
 	if !hook(ctx, failpath) {
-		return nil, ErrFiltered
+		return nil, errors.Wrapf(ErrFiltered, "error on %s", failpath)
 	}
-	return fps.Eval(failpath)
+	val, err := fps.Eval(failpath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error on %s", failpath)
+	}
+	return val, nil
 }
 
 // Eval evaluates a failpoint's value, It will return the evaluated value and
@@ -186,10 +204,14 @@ func (fps *Failpoints) Eval(failpath string) (Value, error) {
 	fp, found := fps.reg[failpath]
 	fps.mu.RUnlock()
 	if !found {
-		return nil, ErrNotExist
+		return nil, errors.Wrapf(ErrNotExist, "error on %s", failpath)
 	}
 
-	return fp.Eval()
+	val, err := fp.Eval()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error on %s", failpath)
+	}
+	return val, nil
 }
 
 // failpoints is the default
@@ -237,8 +259,8 @@ func EvalContext(ctx context.Context, failpath string) (Value, error) {
 	// The package level EvalContext usaully be injected into the users
 	// code, in which case the error can not be handled by the generated
 	// code. We print the error here.
-	if err, ok := err.(FpError); !ok && err != nil {
-		fmt.Printf("%v on %s\n", err, failpath)
+	if err, ok := errors.Cause(err).(FpError); !ok && err != nil {
+		fmt.Println(err)
 	}
 	return val, err
 }
@@ -247,8 +269,8 @@ func EvalContext(ctx context.Context, failpath string) (Value, error) {
 // nil err if the failpoint is active
 func Eval(failpath string) (Value, error) {
 	val, err := failpoints.Eval(failpath)
-	if err, ok := err.(FpError); !ok && err != nil {
-		fmt.Printf("%v on %s\n", err, failpath)
+	if err, ok := errors.Cause(err).(FpError); !ok && err != nil {
+		fmt.Println(err)
 	}
 	return val, err
 }
