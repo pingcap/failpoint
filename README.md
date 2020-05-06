@@ -135,7 +135,7 @@ used to trigger the failpoint and `failpoint-closure` will be expanded as the bo
     The converted code looks like:
 
     ```go
-    if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
+    if val, _err_ := failpoint.Eval(_curpkg_("failpoint-name")); _err_ == nil {
         return "unit-test", val
     }
     ```
@@ -160,7 +160,7 @@ which can be ignored.
     And the converted code looks like:
 
     ```go
-    if _, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
+    if _, _err_ := failpoint.Eval(_curpkg_("failpoint-name")); _err_ == nil {
         fmt.Println("unit-test")
     }
     ```
@@ -178,7 +178,7 @@ active in parallel tests or other cases. For example,
     The converted code looks like:
 
     ```go
-    if val, err := failpoint.EvalContext(ctx, _curpkg_("failpoint-name")); err == nil {
+    if val, _err_ := failpoint.EvalContext(ctx, _curpkg_("failpoint-name")); _err_ == nil {
         fmt.Println("unit-test", val)
     }
     ```
@@ -194,7 +194,7 @@ active in parallel tests or other cases. For example,
     Becomes
 
     ```go
-    if val, err := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); err == nil {
+    if val, _err_ := failpoint.EvalContext(nil, _curpkg_("failpoint-name")); _err_ == nil {
         fmt.Println("unit-test", val)
     }
     ```
@@ -277,7 +277,7 @@ active in parallel tests or other cases. For example,
                 case j / 10:
                     goto outer
                 default:
-                    if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
+                    if val, _err_ := failpoint.Eval(_curpkg_("failpoint-name")); _err_ == nil {
                         fmt.Println("unit-test", val.(int))
                         if val == j/11 {
                             break inner
@@ -340,11 +340,11 @@ instead of using failpoint marker functions.
 
     ```go
     if a, b := func() {
-        if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
+        if val, _err_ := failpoint.Eval(_curpkg_("failpoint-name")); _err_ == nil {
             fmt.Println("unit-test", val)
         }
     }, func() int { return rand.Intn(200) }(); b > func() int {
-        if val, err := failpoint.Eval(_curpkg_("failpoint-name")); err == nil {
+        if val, _err_ := failpoint.Eval(_curpkg_("failpoint-name")); _err_ == nil {
             return val.(int)
         }
         return rand.Intn(3000)
