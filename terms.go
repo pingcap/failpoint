@@ -115,7 +115,7 @@ func (t *terms) eval() (Value, error) {
 			return term.do()
 		}
 	}
-	return nil, nil
+	return nil, ErrNotAllowed
 }
 
 // split terms from a -> b -> ... into [a, b, ...]
