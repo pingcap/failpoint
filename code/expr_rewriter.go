@@ -37,9 +37,11 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	if len(call.Args) != 2 {
 		return false, nil, fmt.Errorf("failpoint.Inject: expect 2 arguments but got %v in %s", len(call.Args), r.pos(call.Pos()))
 	}
-	fpname, ok := call.Args[0].(*ast.BasicLit)
+	// First argument need not to be a string literal, any string type stuff is ok.
+	// Type safe is convinced by compiler.
+	fpname, ok := call.Args[0].(ast.Expr)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.Inject: first argument expect string literal in %s", r.pos(call.Pos()))
+		return false, nil, fmt.Errorf("failpoint.Inject: first argument expect a valid expression in %s", r.pos(call.Pos()))
 	}
 
 	// failpoint.Inject("failpoint-name", nil)
@@ -69,7 +71,7 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 
 	checkCall := &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
-			X:   ast.NewIdent(r.failpointName),
+			X:   &ast.Ident{NamePos: call.Pos(), Name: r.failpointName},
 			Sel: ast.NewIdent(evalFunction),
 		},
 		Args: []ast.Expr{fpnameExtendCall},
@@ -99,13 +101,18 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 		argName = ast.NewIdent("_")
 	}
 
-	cond := ast.NewIdent("ok")
+	err := ast.NewIdent("_err_")
 	init := &ast.AssignStmt{
-		Lhs: []ast.Expr{argName, cond},
+		Lhs: []ast.Expr{argName, err},
 		Rhs: []ast.Expr{checkCall},
 		Tok: token.DEFINE,
 	}
 
+	cond := &ast.BinaryExpr{
+		X:  err,
+		Op: token.EQL,
+		Y:  ast.NewIdent("nil"),
+	}
 	stmt := &ast.IfStmt{
 		If:   call.Pos(),
 		Init: init,
@@ -120,13 +127,17 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 		return false, nil, fmt.Errorf("failpoint.InjectContext: expect 3 arguments but got %v in %s", len(call.Args), r.pos(call.Pos()))
 	}
 
-	ctxname, ok := call.Args[0].(*ast.Ident)
+	// Second argument need not to be a identifier, any context type token (e.g. selector) is OK.
+	// Type safe is convinced by compiler.
+	ctxname, ok := call.Args[0].(ast.Expr)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: first argument expect context in %s", r.pos(call.Pos()))
+		return false, nil, fmt.Errorf("failpoint.InjectContext: first argument expect context in %s, which must be an expression", r.pos(call.Pos()))
 	}
-	fpname, ok := call.Args[1].(*ast.BasicLit)
+	// Second argument need not to be a string literal, any string type stuff is ok.
+	// Type safe is convinced by compiler.
+	fpname, ok := call.Args[1].(ast.Expr)
 	if !ok {
-		return false, nil, fmt.Errorf("failpoint.InjectContext: second argument expect string literal in %s", r.pos(call.Pos()))
+		return false, nil, fmt.Errorf("failpoint.InjectContext: second argument expect a valid expression in %s", r.pos(call.Pos()))
 	}
 
 	// failpoint.InjectContext("failpoint-name", ctx, nil)
@@ -157,7 +168,7 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 
 	checkCall := &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
-			X:   ast.NewIdent(r.failpointName),
+			X:   &ast.Ident{NamePos: call.Pos(), Name: r.failpointName},
 			Sel: ast.NewIdent(evalCtxFunction),
 		},
 		Args: []ast.Expr{ctxname, fpnameExtendCall},
@@ -187,13 +198,18 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 		argName = ast.NewIdent("_")
 	}
 
-	cond := ast.NewIdent("ok")
+	err := ast.NewIdent("_err_")
 	init := &ast.AssignStmt{
-		Lhs: []ast.Expr{argName, cond},
+		Lhs: []ast.Expr{argName, err},
 		Rhs: []ast.Expr{checkCall},
 		Tok: token.DEFINE,
 	}
 
+	cond := &ast.BinaryExpr{
+		X:  err,
+		Op: token.EQL,
+		Y:  ast.NewIdent("nil"),
+	}
 	stmt := &ast.IfStmt{
 		If:   call.Pos(),
 		Init: init,

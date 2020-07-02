@@ -47,13 +47,16 @@ func TestTermsString(t *testing.T) {
 		{`1*return("abc")->return("def")`, []string{"abc", "def", "def"}},
 	}
 	for _, tt := range tests {
-		ter, err := newTerms("test", tt.desc, nil)
+		ter, err := newTerms(tt.desc, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, w := range tt.weval {
-			v := ter.eval()
+			v, err := ter.eval()
 			if v == nil && w == "" {
+				continue
+			}
+			if err != nil {
 				continue
 			}
 			if v.(string) != w {
@@ -75,11 +78,11 @@ func TestTermsTypes(t *testing.T) {
 		{`return()`, struct{}{}},
 	}
 	for _, tt := range tests {
-		ter, err := newTerms("test", tt.desc, nil)
+		ter, err := newTerms(tt.desc, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		v := ter.eval()
+		v, _ := ter.eval()
 		if v == nil && tt.weval == nil {
 			continue
 		}

@@ -300,35 +300,39 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			if !ok {
 				break
 			}
-			selectorExpr, ok := call.Fun.(*ast.SelectorExpr)
-			if !ok {
-				break
-			}
-			packageName, ok := selectorExpr.X.(*ast.Ident)
-			if !ok || packageName.Name != r.failpointName {
-				break
-			}
-			exprRewriter, found := exprRewriters[selectorExpr.Sel.Name]
-			if !found {
-				break
-			}
-			rewritten, stmt, err := exprRewriter(r, call)
-			if err != nil {
-				return err
-			}
-			if !rewritten {
-				continue
-			}
-
-			if ifStmt, ok := stmt.(*ast.IfStmt); ok {
-				err := r.rewriteIfStmt(ifStmt)
+			switch expr := call.Fun.(type) {
+			case *ast.FuncLit:
+				err := r.rewriteFuncLit(expr)
 				if err != nil {
 					return err
 				}
-			}
+			case *ast.SelectorExpr:
+				packageName, ok := expr.X.(*ast.Ident)
+				if !ok || packageName.Name != r.failpointName {
+					break
+				}
+				exprRewriter, found := exprRewriters[expr.Sel.Name]
+				if !found {
+					break
+				}
+				rewritten, stmt, err := exprRewriter(r, call)
+				if err != nil {
+					return err
+				}
+				if !rewritten {
+					continue
+				}
 
-			stmts[i] = stmt
-			r.rewritten = true
+				if ifStmt, ok := stmt.(*ast.IfStmt); ok {
+					err := r.rewriteIfStmt(ifStmt)
+					if err != nil {
+						return err
+					}
+				}
+
+				stmts[i] = stmt
+				r.rewritten = true
+			}
 
 		case *ast.AssignStmt:
 			// x := (func() {...} ())

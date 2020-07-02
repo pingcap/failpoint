@@ -11,7 +11,7 @@ import (
 	"github.com/pingcap/failpoint/code"
 )
 
-func TestNewRestorer(t *testing.T) {
+func TestCode(t *testing.T) {
 	TestingT(t)
 }
 
@@ -61,7 +61,7 @@ import (
 )
 
 func unittest() {
-	if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if val, _err_ := failpoint.Eval(_curpkg_("failpoint-name")); _err_ == nil {
 		fmt.Println("extra add line")
 		fmt.Println("unit-test", val)
 	}
@@ -112,7 +112,7 @@ import (
 )
 
 func unittest() {
-	if val, ok := failpoint.Eval(_curpkg_("failpoint-name")); ok {
+	if val, _err_ := failpoint.Eval(_curpkg_("failpoint-name")); _err_ == nil {
 		fmt.Println("extra add line")
 		fmt.Println("unit-test", val)
 	}
@@ -165,7 +165,7 @@ import (
 )
 
 func unittest() {
-	if val, ok := failpoint.Eval(_curpkg_("failpoint-name-extra-part")); ok {
+	if val, _err_ := failpoint.Eval(_curpkg_("failpoint-name-extra-part")); _err_ == nil {
 		fmt.Println("extra add line")
 		fmt.Println("unit-test", val)
 	}
@@ -263,7 +263,7 @@ import (
 )
 
 func unittest() {
-	if val, ok := failpoint.EvalContext(nil, _curpkg_("failpoint-name-extra-part")); ok {
+	if val, _err_ := failpoint.EvalContext(nil, _curpkg_("failpoint-name-extra-part")); _err_ == nil {
 		fmt.Println("extra add line")
 		fmt.Println("unit-test", val)
 	}

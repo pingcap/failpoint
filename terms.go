@@ -37,11 +37,6 @@ import (
 	"time"
 )
 
-var (
-	// ErrBadParse represents the terms is not an invalid form
-	ErrBadParse = fmt.Errorf("failpoint: could not parse terms")
-)
-
 func init() {
 	rand.Seed(time.Now().Unix())
 }
@@ -53,9 +48,6 @@ type terms struct {
 	chain []*term
 	// desc is the full term given for the failpoint
 	desc string
-	// fpath is the failpoint path for these terms
-	fpath string
-
 	// mu protects the state of the terms chain
 	mu sync.Mutex
 }
@@ -69,7 +61,7 @@ type term struct {
 	val  interface{}
 
 	parent *terms
-	fp     *failpoint
+	fp     *Failpoint
 }
 
 type mod interface {
@@ -101,12 +93,12 @@ func (ml *modList) allow() bool {
 	return true
 }
 
-func newTerms(fpath, desc string, fp *failpoint) (*terms, error) {
-	chain := parse(desc, fp)
-	if len(chain) == 0 {
-		return nil, ErrBadParse
+func newTerms(desc string, fp *Failpoint) (*terms, error) {
+	chain, err := parse(desc, fp)
+	if err != nil {
+		return nil, err
 	}
-	t := &terms{chain: chain, desc: desc, fpath: fpath}
+	t := &terms{chain: chain, desc: desc}
 	for _, c := range chain {
 		c.parent = t
 	}
@@ -115,7 +107,7 @@ func newTerms(fpath, desc string, fp *failpoint) (*terms, error) {
 
 func (t *terms) String() string { return t.desc }
 
-func (t *terms) eval() Value {
+func (t *terms) eval() (Value, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	for _, term := range t.chain {
@@ -123,33 +115,31 @@ func (t *terms) eval() Value {
 			return term.do()
 		}
 	}
-	return nil
+	return nil, ErrNotAllowed
 }
 
 // split terms from a -> b -> ... into [a, b, ...]
-func parse(desc string, fp *failpoint) (chain []*term) {
+func parse(desc string, fp *Failpoint) (chain []*term, err error) {
 	origDesc := desc
 	for len(desc) != 0 {
 		t := parseTerm(desc, fp)
 		if t == nil {
-			fmt.Printf("failed to parse %q past %q\n", origDesc, desc)
-			return nil
+			return nil, fmt.Errorf("failpoint: failed to parse %q past %q", origDesc, desc)
 		}
 		desc = desc[len(t.desc):]
 		chain = append(chain, t)
 		if len(desc) >= 2 {
 			if !strings.HasPrefix(desc, "->") {
-				fmt.Printf("failed to parse %q past %q, expected \"->\"\n", origDesc, desc)
-				return nil
+				return nil, fmt.Errorf("failpoint: failed to parse %q past %q, expected \"->\"", origDesc, desc)
 			}
 			desc = desc[2:]
 		}
 	}
-	return chain
+	return chain, nil
 }
 
 // <term> :: <mod> <act> [ "(" <val> ")" ]
-func parseTerm(desc string, fp *failpoint) *term {
+func parseTerm(desc string, fp *Failpoint) *term {
 	t := &term{}
 	modStr, mods := parseMod(desc)
 	t.mods = &modList{mods}
@@ -305,7 +295,7 @@ func parseVal(desc string) (string, interface{}) {
 	return "", nil
 }
 
-type actFunc func(*term) interface{}
+type actFunc func(*term) (interface{}, error)
 
 var actMap = map[string]actFunc{
 	"off":    actOff,
@@ -317,13 +307,13 @@ var actMap = map[string]actFunc{
 	"pause":  actPause,
 }
 
-func (t *term) do() interface{} { return t.act(t) }
+func (t *term) do() (interface{}, error) { return t.act(t) }
 
-func actOff(t *term) interface{} { return nil }
+func actOff(t *term) (interface{}, error) { return nil, nil }
 
-func actReturn(t *term) interface{} { return t.val }
+func actReturn(t *term) (interface{}, error) { return t.val, nil }
 
-func actSleep(t *term) interface{} {
+func actSleep(t *term) (interface{}, error) {
 	var dur time.Duration
 	switch v := t.val.(type) {
 	case int:
@@ -331,33 +321,31 @@ func actSleep(t *term) interface{} {
 	case string:
 		vDur, err := time.ParseDuration(v)
 		if err != nil {
-			fmt.Printf("failpoint: could not parse sleep(%v) on %s\n", v, t.parent.fpath)
-			return nil
+			return nil, fmt.Errorf("failpoint: could not parse sleep(%v)", v)
 		}
 		dur = vDur
 	default:
-		fmt.Printf("failpoint: ignoring sleep(%v) on %s\n", v, t.parent.fpath)
-		return nil
+		return nil, fmt.Errorf("failpoint: ignoring sleep(%v)", v)
 	}
 	time.Sleep(dur)
-	return nil
+	return nil, nil
 }
 
-func actPause(t *term) interface{} {
+func actPause(t *term) (interface{}, error) {
 	if t.fp != nil {
 		t.fp.Pause()
 	}
-	return nil
+	return nil, nil
 }
 
-func actPanic(t *term) interface{} {
+func actPanic(t *term) (interface{}, error) {
 	if t.val != nil {
 		panic(fmt.Sprintf("failpoint panic: %v", t.val))
 	}
-	panic("failpoint panic: " + t.parent.fpath)
+	panic("failpoint panic")
 }
 
-func actBreak(t *term) interface{} {
+func actBreak(t *term) (interface{}, error) {
 	p, perr := exec.LookPath(os.Args[0])
 	if perr != nil {
 		panic(perr)
@@ -378,10 +366,10 @@ func actBreak(t *term) interface{} {
 
 	// don't zombie gdb
 	go cmd.Wait()
-	return nil
+	return nil, nil
 }
 
-func actPrint(t *term) interface{} {
-	fmt.Println("failpoint print:", t.parent.fpath)
-	return nil
+func actPrint(t *term) (interface{}, error) {
+	fmt.Println("failpoint print:", t.val)
+	return nil, nil
 }

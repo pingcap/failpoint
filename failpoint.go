@@ -35,7 +35,8 @@ type (
 	// failpoint will not to be evaluated.
 	Hook func(ctx context.Context, fpname string) bool
 
-	failpoint struct {
+	// Failpoint is a point to inject a failure
+	Failpoint struct {
 		mu       sync.RWMutex
 		t        *terms
 		waitChan chan struct{}
@@ -43,51 +44,71 @@ type (
 )
 
 // Pause will pause until the failpoint is disabled.
-func (fp *failpoint) Pause() {
+func (fp *Failpoint) Pause() {
 	<-fp.waitChan
 }
 
-// WithHook binds a hook to a new context which is based on the `ctx` parameter
-func WithHook(ctx context.Context, hook Hook) context.Context {
-	return context.WithValue(ctx, failpointCtxKey, hook)
+// Enable sets a failpoint to a given failpoint description.
+func (fp *Failpoint) Enable(inTerms string) error {
+	t, err := newTerms(inTerms, fp)
+	if err != nil {
+		return err
+	}
+	fp.mu.Lock()
+	fp.t = t
+	fp.waitChan = make(chan struct{})
+	fp.mu.Unlock()
+	return nil
 }
 
-// EvalContext evaluates a failpoint's value, and calls hook if the context is
-// not nil and contains hook function. It will return the evaluated value and
-// true if the failpoint is active. Always returns false if ctx is nil or context
-// does not contains hook function
-func EvalContext(ctx context.Context, fpname string) (Value, bool) {
-	if ctx == nil {
-		return nil, false
+// EnableWith enables and locks the failpoint, the lock prevents
+// the failpoint to be evaluated. It invokes the action while holding
+// the lock. It is useful when enables a panic failpoint
+// and does some post actions before the failpoint being evaluated.
+func (fp *Failpoint) EnableWith(inTerms string, action func() error) error {
+	t, err := newTerms(inTerms, fp)
+	if err != nil {
+		return err
 	}
-	hook, ok := ctx.Value(failpointCtxKey).(Hook)
-	if !ok {
-		return nil, false
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
+	fp.t = t
+	fp.waitChan = make(chan struct{})
+	if err := action(); err != nil {
+		return err
 	}
-	if !hook(ctx, fpname) {
-		return nil, false
-	}
-	return Eval(fpname)
+	return nil
 }
 
-// Eval evaluates a failpoint's value, It will return the evaluated value and
-// true if the failpoint is active
-func Eval(fpname string) (Value, bool) {
-	failpoints.mu.RLock()
-	defer failpoints.mu.RUnlock()
-	fp, found := failpoints.reg[fpname]
-	if !found {
-		return nil, false
+// Disable stops a failpoint
+func (fp *Failpoint) Disable() error {
+	select {
+	case <-fp.waitChan:
+		return ErrDisabled
+	default:
+		close(fp.waitChan)
 	}
 
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
+	if fp.t == nil {
+		return ErrDisabled
+	}
+	fp.t = nil
+	return nil
+}
+
+// Eval evaluates a failpoint's value, It will return the evaluated value or
+// an error if the failpoint is disabled or failed to eval
+func (fp *Failpoint) Eval() (Value, error) {
 	fp.mu.RLock()
 	defer fp.mu.RUnlock()
 	if fp.t == nil {
-		return nil, false
+		return nil, ErrDisabled
 	}
-	v := fp.t.eval()
-	if v == nil {
-		return nil, false
+	v, err := fp.t.eval()
+	if err != nil {
+		return nil, err
 	}
-	return v, true
+	return v, nil
 }
