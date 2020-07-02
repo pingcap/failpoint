@@ -50,7 +50,12 @@ func main() {
 			fmt.Println("Error occurred in absolute path " + paths[i] + " with " + err.Error())
 			os.Exit(1)
 		}
-		paths[i] = absPath
+		realPath, err := filepath.EvalSymlinks(absPath)
+		if err != nil {
+			fmt.Println("Error resolving symbolic link "+absPath+", ", err.Error())
+			os.Exit(1)
+		}
+		paths[i] = realPath
 	}
 
 	switch os.Args[1] {
