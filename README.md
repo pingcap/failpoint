@@ -4,7 +4,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/pingcap/failpoint)](https://goreportcard.com/report/github.com/pingcap/failpoint)
 [![Build Status](https://api.travis-ci.com/pingcap/failpoint.svg?branch=master)](https://travis-ci.com/pingcap/failpoint)
 [![Coverage Status](https://codecov.io/gh/pingcap/failpoint/branch/master/graph/badge.svg)](https://codecov.io/gh/pingcap/failpoint)
-[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)  
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpingcap%2Ffailpoint.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpingcap%2Ffailpoint?ref=badge_shield)
+ 
 
 An implementation of [failpoints][failpoint] for Golang. Fail points are used to add code points where errors may be injected in a user controlled fashion. Fail point is a code snippet that is only executed when the corresponding failpoint is active.
 
@@ -507,3 +508,7 @@ failpoint is active and executes failpoint code if the failpoint is enabled
 ## Acknowledgments
 
 - Thanks [gofail](https://github.com/etcd-io/gofail) to provide initial implementation.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fpingcap%2Ffailpoint.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fpingcap%2Ffailpoint?ref=badge_large)
