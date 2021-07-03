@@ -1,0 +1,33 @@
+name: Suite
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      - name: validation
+        run: make build test
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      - name: validation
+        run: make cover upload-cover
