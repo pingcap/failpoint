@@ -14,7 +14,7 @@ your contribution accepted.
 
 Developing Failpoint requires:
 
-* [Go 1.12](http://golang.org/doc/code.html)
+* [Go 1.13](http://golang.org/doc/code.html)
 * An internet connection to download the dependencies
 
 Simply run `make` to build the program.
