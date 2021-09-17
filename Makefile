@@ -13,7 +13,7 @@ export PATH := $(path_to_add):$(PATH):$(shell pwd)/tools/bin
 
 GO        := GO111MODULE=on go
 GOBUILD   := GO111MODULE=on CGO_ENABLED=0 $(GO) build
-GOTEST    := GO111MODULE=on GO_FAILPOINTS="failpoint-env1=return(10);failpoint-env2=return(true)" GO_FAILPOINTS_HTTP=":23389" CGO_ENABLED=1 $(GO) test -p 4
+GOTEST    := GO111MODULE=on GO_FAILPOINTS="failpoint-env1=return(10);failpoint-env2=return(true)" GO_FAILPOINTS_HTTP=":23889" CGO_ENABLED=1 $(GO) test -p 4
 
 ARCH      := "`uname -s`"
 LINUX     := "Linux"
