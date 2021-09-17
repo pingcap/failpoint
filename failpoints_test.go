@@ -1,142 +1,155 @@
+// Copyright 2021 PingCAP, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package failpoint_test
 
 import (
 	"io/ioutil"
 	"os"
+	"testing"
 	"time"
 
-	. "github.com/pingcap/check"
 	"github.com/pingcap/errors"
 	"github.com/pingcap/failpoint"
+	"github.com/stretchr/testify/require"
 )
 
-var _ = Suite(&failpointsSuite{})
-
-type failpointsSuite struct{}
-
-func (s *failpointsSuite) TestFailpoints(c *C) {
+func TestFailpoints(t *testing.T) {
 	var fps failpoint.Failpoints
 
 	err := fps.Enable("failpoints-test-1", "return(1)")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	val, err := fps.Eval("failpoints-test-1")
-	c.Assert(err, IsNil)
-	c.Assert(val.(int), Equals, 1)
+	require.NoError(t, err)
+	require.Equal(t, 1, val.(int))
 
 	err = fps.Enable("failpoints-test-2", "invalid")
-	c.Assert(err, ErrorMatches, `error on failpoints-test-2: failpoint: failed to parse \"invalid\" past \"invalid\"`)
+	require.EqualError(t, err, `error on failpoints-test-2: failpoint: failed to parse "invalid" past "invalid"`)
 
 	val, err = fps.Eval("failpoints-test-2")
-	c.Assert(err, NotNil)
-	c.Assert(val, IsNil)
+	require.Error(t, err)
+	require.Nil(t, val)
 
 	err = fps.Disable("failpoints-test-1")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	val, err = fps.Eval("failpoints-test-1")
-	c.Assert(err, NotNil)
-	c.Assert(val, IsNil)
+	require.Error(t, err)
+	require.Nil(t, val)
 
 	err = fps.Disable("failpoints-test-1")
-	c.Assert(err, ErrorMatches, `error on failpoints-test-1: failpoint: failpoint is disabled`)
+	require.EqualError(t, err, `error on failpoints-test-1: failpoint: failpoint is disabled`)
 
 	err = fps.Enable("failpoints-test-1", "return(1)")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	status, err := fps.Status("failpoints-test-1")
-	c.Assert(err, IsNil)
-	c.Assert(status, Equals, "return(1)")
+	require.NoError(t, err)
+	require.Equal(t, "return(1)", status)
 
 	err = fps.Enable("failpoints-test-3", "return(2)")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	ch := make(chan struct{})
 	go func() {
 		time.Sleep(time.Second)
 		err := fps.Disable("gofail/testPause")
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 		close(ch)
 	}()
 	err = fps.Enable("gofail/testPause", "pause")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	start := time.Now()
 	v, err := fps.Eval("gofail/testPause")
-	c.Assert(err, IsNil)
-	c.Assert(v, IsNil)
-	c.Assert(time.Since(start), GreaterEqual, 100*time.Millisecond, Commentf("not paused"))
+	require.NoError(t, err)
+	require.Nil(t, v)
+
+	require.True(t, time.Since(start) > 100*time.Millisecond)
 	<-ch
 
 	err = fps.Enable("failpoints-test-4", "50.0%return(5)")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	var succ int
 	for i := 0; i < 1000; i++ {
 		val, err = fps.Eval("failpoints-test-4")
 		if err == nil && val != nil {
 			succ++
-			c.Assert(val.(int), Equals, 5)
+			require.Equal(t, 5, val.(int))
 		}
 	}
+
 	if succ < 450 || succ > 550 {
-		c.Fatalf("prop failure: %v", succ)
+		require.FailNow(t, "prop failure: %v", succ)
 	}
 
 	err = fps.Enable("failpoints-test-5", "50*return(5)")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	for i := 0; i < 50; i++ {
 		val, err = fps.Eval("failpoints-test-5")
-		c.Assert(err, IsNil)
-		c.Assert(val.(int), Equals, 5)
+		require.NoError(t, err)
+		require.Equal(t, 5, val.(int))
 	}
 	val, err = fps.Eval("failpoints-test-5")
-	c.Assert(errors.Cause(err), Equals, failpoint.ErrNotAllowed)
-	c.Assert(val, IsNil)
+	require.Equal(t, failpoint.ErrNotAllowed, errors.Cause(err))
+	require.Nil(t, val)
 
 	points := map[string]struct{}{}
 	for _, fp := range fps.List() {
 		points[fp] = struct{}{}
 	}
-	c.Assert(points, HasKey, "failpoints-test-1")
-	c.Assert(points, HasKey, "failpoints-test-2")
-	c.Assert(points, HasKey, "failpoints-test-3")
-	c.Assert(points, HasKey, "failpoints-test-4")
-	c.Assert(points, HasKey, "failpoints-test-5")
+	require.Contains(t, points, "failpoints-test-1")
+	require.Contains(t, points, "failpoints-test-2")
+	require.Contains(t, points, "failpoints-test-3")
+	require.Contains(t, points, "failpoints-test-4")
+	require.Contains(t, points, "failpoints-test-5")
 
 	err = fps.Enable("failpoints-test-6", "50*return(5)->1*return(true)->1*return(false)->10*return(20)")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	// 50*return(5)
 	for i := 0; i < 50; i++ {
 		val, err = fps.Eval("failpoints-test-6")
-		c.Assert(err, IsNil)
-		c.Assert(val.(int), Equals, 5)
+		require.NoError(t, err)
+		require.Equal(t, 5, val.(int))
 	}
 	// 1*return(true)
 	val, err = fps.Eval("failpoints-test-6")
-	c.Assert(err, IsNil)
-	c.Assert(val.(bool), IsTrue)
+	require.NoError(t, err)
+	require.True(t, val.(bool))
 	// 1*return(false)
 	val, err = fps.Eval("failpoints-test-6")
-	c.Assert(err, IsNil)
-	c.Assert(val.(bool), IsFalse)
+	require.NoError(t, err)
+	require.False(t, val.(bool))
 	// 10*return(20)
 	for i := 0; i < 10; i++ {
 		val, err = fps.Eval("failpoints-test-6")
-		c.Assert(err, IsNil)
-		c.Assert(val.(int), Equals, 20)
+		require.NoError(t, err)
+		require.Equal(t, 20, val.(int))
 	}
 	val, err = fps.Eval("failpoints-test-6")
-	c.Assert(errors.Cause(err), Equals, failpoint.ErrNotAllowed)
-	c.Assert(val, IsNil)
+	require.Equal(t, failpoint.ErrNotAllowed, errors.Cause(err))
+	require.Nil(t, val)
 
 	val, err = fps.Eval("failpoints-test-7")
-	c.Assert(errors.Cause(err), Equals, failpoint.ErrNotExist)
-	c.Assert(val, IsNil)
+	require.Equal(t, failpoint.ErrNotExist, errors.Cause(err))
+	require.Nil(t, val)
 
 	val, err = failpoint.Eval("failpoint-env1")
-	c.Assert(err, IsNil)
-	c.Assert(val.(int), Equals, 10)
+	require.NoError(t, err)
+	require.Equal(t, 10, val.(int))
 	val, err = failpoint.Eval("failpoint-env2")
-	c.Assert(err, IsNil)
-	c.Assert(val.(bool), IsTrue)
+	require.NoError(t, err)
+	require.True(t, val.(bool))
 
 	// Tests for sleep
 	ch = make(chan struct{})
@@ -144,15 +157,15 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 		defer close(ch)
 		time.Sleep(time.Second)
 		err := failpoint.Disable("gofail/test-sleep")
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 	}()
 	err = failpoint.Enable("gofail/test-sleep", "sleep(100)")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	start = time.Now()
 	v, err = failpoint.Eval("gofail/test-sleep")
-	c.Assert(err, IsNil)
-	c.Assert(v, IsNil)
-	c.Assert(time.Since(start), GreaterEqual, 90*time.Millisecond, Commentf("not sleep"))
+	require.NoError(t, err)
+	require.Nil(t, v)
+	require.True(t, time.Since(start) > 90*time.Millisecond)
 	<-ch
 
 	// Tests for sleep duration
@@ -161,57 +174,57 @@ func (s *failpointsSuite) TestFailpoints(c *C) {
 		defer close(ch)
 		time.Sleep(time.Second)
 		err := failpoint.Disable("gofail/test-sleep2")
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 	}()
 	err = failpoint.Enable("gofail/test-sleep2", `sleep("100ms")`)
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	start = time.Now()
 	v, err = failpoint.Eval("gofail/test-sleep2")
-	c.Assert(err, IsNil)
-	c.Assert(v, IsNil)
-	c.Assert(time.Since(start), GreaterEqual, 90*time.Millisecond, Commentf("not sleep"))
+	require.NoError(t, err)
+	require.Nil(t, v)
+	require.True(t, time.Since(start) > 90*time.Millisecond)
 	<-ch
 
 	// Tests for print
 	oldStdio := os.Stdout
 	r, w, err := os.Pipe()
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	os.Stdout = w
 	err = fps.Enable("test-print", `print("hello world")`)
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	val, err = fps.Eval("test-print")
-	c.Assert(err, IsNil)
-	c.Assert(val, IsNil)
+	require.NoError(t, err)
+	require.Nil(t, val)
 	outC := make(chan string)
 	// copy the output in a separate goroutine so printing can't block indefinitely
 	go func() {
 		defer close(outC)
 		s, err := ioutil.ReadAll(r)
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 		outC <- string(s)
 	}()
-	w.Close()
+	require.NoError(t, w.Close())
 	os.Stdout = oldStdio
 	out := <-outC
-	c.Assert(out, Equals, "failpoint print: hello world\n")
+	require.Equal(t, "failpoint print: hello world\n", out)
 
 	// Tests for panic
-	c.Assert(testPanic, PanicMatches, "failpoint panic.*")
+	require.PanicsWithValue(t, "failpoint panic: {}", testPanic)
 
 	err = fps.Enable("failpoints-test-7", `return`)
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	val, err = fps.Eval("failpoints-test-7")
-	c.Assert(err, IsNil)
-	c.Assert(val, Equals, struct{}{})
+	require.NoError(t, err)
+	require.Equal(t, struct{}{}, val)
 
 	err = fps.Enable("failpoints-test-8", `return()`)
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	val, err = fps.Eval("failpoints-test-8")
-	c.Assert(err, IsNil)
-	c.Assert(val, Equals, struct{}{})
+	require.NoError(t, err)
+	require.Equal(t, struct{}{}, val)
 }
 
 func testPanic() {
 	_ = failpoint.Enable("test-panic", `panic`)
-	failpoint.Eval("test-panic")
+	_, _ = failpoint.Eval("test-panic")
 }

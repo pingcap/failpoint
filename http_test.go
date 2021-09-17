@@ -1,3 +1,17 @@
+// Copyright 2021 PingCAP, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package failpoint_test
 
 import (
@@ -6,32 +20,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
 
-	. "github.com/pingcap/check"
 	"github.com/pingcap/failpoint"
+	"github.com/stretchr/testify/require"
 )
-
-var _ = Suite(&httpSuite{})
-
-type httpSuite struct{}
-
-type contains struct {
-	*CheckerInfo
-}
-
-var Contains Checker = &contains{
-	&CheckerInfo{Name: "Contains", Params: []string{"obtained", "expected"}},
-}
-
-func (checker *contains) Check(params []interface{}, names []string) (result bool, error string) {
-	param1, ok1 := params[0].(string)
-	param2, ok2 := params[1].(string)
-	if !ok1 || !ok2 {
-		return false, "Argument to " + checker.Name + " must be string"
-	}
-
-	return strings.Contains(param1, param2), ""
-}
 
 type badReader struct{}
 
@@ -39,93 +32,93 @@ func (badReader) Read([]byte) (int, error) {
 	return 0, errors.New("mock bad read")
 }
 
-func (s *httpSuite) TestServeHTTP(c *C) {
+func TestServeHTTP(t *testing.T) {
 	handler := &failpoint.HttpHandler{}
 
 	// PUT
 	req, err := http.NewRequest(http.MethodPut, "http://127.0.0.1/failpoint-name", strings.NewReader("return(1)"))
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	res := httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusNoContent)
+	require.Equal(t, http.StatusNoContent, res.Code)
 
 	req, err = http.NewRequest(http.MethodPut, "http://127.0.0.1", strings.NewReader("return(1)"))
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusBadRequest)
-	c.Assert(res.Body.String(), Contains, "malformed request URI")
+	require.Equal(t, http.StatusBadRequest, res.Code)
+	require.Contains(t, res.Body.String(), "malformed request URI")
 
 	req, err = http.NewRequest(http.MethodPut, "http://127.0.0.1/failpoint-name", badReader{})
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusBadRequest)
-	c.Assert(res.Body.String(), Contains, "failed ReadAll in PUT")
+	require.Equal(t, http.StatusBadRequest, res.Code)
+	require.Contains(t, res.Body.String(), "failed ReadAll in PUT")
 
 	req, err = http.NewRequest(http.MethodPut, "http://127.0.0.1/failpoint-name", strings.NewReader("invalid"))
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusBadRequest)
-	c.Assert(res.Body.String(), Contains, "failed to set failpoint")
+	require.Equal(t, http.StatusBadRequest, res.Code)
+	require.Contains(t, res.Body.String(), "failed to set failpoint")
 
 	// GET
 	req, err = http.NewRequest(http.MethodGet, "http://127.0.0.1/failpoint-name", strings.NewReader(""))
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusOK)
-	c.Assert(res.Body.String(), Contains, "return(1)")
+	require.Equal(t, http.StatusOK, res.Code)
+	require.Contains(t, res.Body.String(), "return(1)")
 
 	req, err = http.NewRequest(http.MethodGet, "http://127.0.0.1/failpoint-name-not-exists", strings.NewReader(""))
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusNotFound)
-	c.Assert(res.Body.String(), Contains, "failed to GET")
+	require.Equal(t, http.StatusNotFound, res.Code)
+	require.Contains(t, res.Body.String(), "failed to GET")
 
 	req, err = http.NewRequest(http.MethodGet, "http://127.0.0.1/", strings.NewReader(""))
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusOK)
-	c.Assert(res.Body.String(), Contains, "failpoint-name=return(1)")
+	require.Equal(t, http.StatusOK, res.Code)
+	require.Contains(t, res.Body.String(), "failpoint-name=return(1)")
 
 	// DELETE
 	req, err = http.NewRequest(http.MethodDelete, "http://127.0.0.1/failpoint-name", strings.NewReader(""))
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusNoContent)
+	require.Equal(t, http.StatusNoContent, res.Code)
 
 	req, err = http.NewRequest(http.MethodDelete, "http://127.0.0.1/failpoint-name-not-exists", strings.NewReader(""))
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusBadRequest)
-	c.Assert(res.Body.String(), Contains, "failed to delete failpoint")
+	require.Equal(t, http.StatusBadRequest, res.Code)
+	require.Contains(t, res.Body.String(), "failed to delete failpoint")
 
 	// DEFAULT
 	req, err = http.NewRequest(http.MethodPost, "http://127.0.0.1/failpoint-name", strings.NewReader(""))
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	res = httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
-	c.Assert(res.Code, Equals, http.StatusMethodNotAllowed)
-	c.Assert(res.Body.String(), Contains, "Method not allowed")
+	require.Equal(t, http.StatusMethodNotAllowed, res.Code)
+	require.Contains(t, res.Body.String(), "Method not allowed")
 
 	// Test environment variable injection
 	resp, err := http.Get("http://127.0.0.1:23389/failpoint-env1")
-	c.Assert(err, IsNil)
-	c.Assert(resp.StatusCode, Equals, http.StatusOK)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 	body, err := ioutil.ReadAll(resp.Body)
-	c.Assert(err, IsNil)
-	c.Assert(string(body), Contains, "return(10)")
+	require.NoError(t, err)
+	require.Contains(t, string(body), "return(10)")
 
 	resp, err = http.Get("http://127.0.0.1:23389/failpoint-env2")
-	c.Assert(err, IsNil)
-	c.Assert(resp.StatusCode, Equals, http.StatusOK)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 	body, err = ioutil.ReadAll(resp.Body)
-	c.Assert(err, IsNil)
-	c.Assert(string(body), Contains, "return(true)")
+	require.NoError(t, err)
+	require.Contains(t, string(body), "return(true)")
 }
