@@ -75,7 +75,6 @@ func init() {
 		}
 	}
 	if s := os.Getenv("GO_FAILPOINTS_HTTP"); len(s) > 0 {
-		println("GO_FAILPOINTS_HTTP: ", s)
 		if err := serve(s); err != nil {
 			fmt.Println(err)
 			os.Exit(1)

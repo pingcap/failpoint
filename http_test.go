@@ -111,7 +111,6 @@ func TestServeHTTP(t *testing.T) {
 
 	// Test environment variable injection
 	port := os.Getenv("GO_FAILPOINT_PORT")
-	println("GO_FAILPOINT_PORT: ", port)
 	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%s/failpoint-env1", port))
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
