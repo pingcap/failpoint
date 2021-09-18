@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pingcap/errors"
 	"github.com/pingcap/failpoint"
 	"github.com/stretchr/testify/require"
 )
@@ -100,7 +101,7 @@ func TestFailpoints(t *testing.T) {
 		require.Equal(t, 5, val.(int))
 	}
 	val, err = fps.Eval("failpoints-test-5")
-	require.ErrorIs(t, failpoint.ErrNotAllowed, err)
+	require.Equal(t, failpoint.ErrNotAllowed, errors.Cause(err))
 	require.Nil(t, val)
 
 	points := map[string]struct{}{}
@@ -136,11 +137,11 @@ func TestFailpoints(t *testing.T) {
 		require.Equal(t, 20, val.(int))
 	}
 	val, err = fps.Eval("failpoints-test-6")
-	require.ErrorIs(t, failpoint.ErrNotAllowed, err)
+	require.Equal(t, failpoint.ErrNotAllowed, errors.Cause(err))
 	require.Nil(t, val)
 
 	val, err = fps.Eval("failpoints-test-7")
-	require.ErrorIs(t, failpoint.ErrNotExist, err)
+	require.Equal(t, failpoint.ErrNotExist, errors.Cause(err))
 	require.Nil(t, val)
 
 	val, err = failpoint.Eval("failpoint-env1")
