@@ -14,7 +14,6 @@ export PATH := $(path_to_add):$(PATH):$(shell pwd)/tools/bin
 GO        := GO111MODULE=on go
 GOBUILD   := GO111MODULE=on CGO_ENABLED=0 $(GO) build
 GOTEST    := GO111MODULE=on GO_FAILPOINTS="failpoint-env1=return(10);failpoint-env2=return(true)" GO_FAILPOINTS_HTTP=":23389" CGO_ENABLED=1 $(GO) test -p 4
-OVERALLS  := CGO_ENABLED=1 GO111MODULE=on GO_FAILPOINTS="failpoint-env1=return(10);failpoint-env2=return(true)" GO_FAILPOINTS_HTTP=":23389" overalls
 
 ARCH      := "`uname -s`"
 LINUX     := "Linux"
@@ -56,19 +55,7 @@ check-static: tools/bin/gometalinter
 
 gotest:
 	@ echo "----------- go test ---------------"
-	$(GOTEST) -v ./...
-
-cover:
-	$(GO) get github.com/go-playground/overalls
-	$(OVERALLS) -project=github.com/pingcap/failpoint \
-	    -covermode=count \
-			-ignore='.git,vendor,LICENSES' \
-			-concurrency=4
-	
-upload-cover:	SHELL:=/bin/bash
-upload-cover:
-	mv overalls.coverprofile coverage.txt
-	bash <(curl -s https://codecov.io/bash)
+	$(GOTEST) -covermode=atomic -coverprofile=coverage.txt -coverpkg=./... -v ./...
 
 tools/bin/gometalinter:
 	cd tools; \
