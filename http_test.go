@@ -33,6 +33,8 @@ func (badReader) Read([]byte) (int, error) {
 }
 
 func TestServeHTTP(t *testing.T) {
+	require.NoError(t, failpoint.Serve(":23389"))
+
 	handler := &failpoint.HttpHandler{}
 
 	// PUT

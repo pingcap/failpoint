@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package failpoint_test
+package failpoint
 
 import (
 	"testing"
 
 	"go.uber.org/goleak"
 )
+
+// Serve exports for testing
+var Serve = serve
 
 func TestMain(m *testing.M) {
 	opts := []goleak.Option{
