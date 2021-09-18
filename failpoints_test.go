@@ -101,7 +101,7 @@ func TestFailpoints(t *testing.T) {
 		require.Equal(t, 5, val.(int))
 	}
 	val, err = fps.Eval("failpoints-test-5")
-	require.Equal(t, failpoint.ErrNotAllowed, errors.Cause(err))
+	require.ErrorIs(t, failpoint.ErrNotAllowed, err)
 	require.Nil(t, val)
 
 	points := map[string]struct{}{}
@@ -137,11 +137,11 @@ func TestFailpoints(t *testing.T) {
 		require.Equal(t, 20, val.(int))
 	}
 	val, err = fps.Eval("failpoints-test-6")
-	require.Equal(t, failpoint.ErrNotAllowed, errors.Cause(err))
+	require.ErrorIs(t, failpoint.ErrNotAllowed, err)
 	require.Nil(t, val)
 
 	val, err = fps.Eval("failpoints-test-7")
-	require.Equal(t, failpoint.ErrNotExist, errors.Cause(err))
+	require.ErrorIs(t, failpoint.ErrNotExist, err)
 	require.Nil(t, val)
 
 	val, err = failpoint.Eval("failpoint-env1")
@@ -165,7 +165,7 @@ func TestFailpoints(t *testing.T) {
 	v, err = failpoint.Eval("gofail/test-sleep")
 	require.NoError(t, err)
 	require.Nil(t, v)
-	require.True(t, time.Since(start) > 90*time.Millisecond)
+	require.GreaterOrEqual(t, time.Since(start).Milliseconds(), int64(90))
 	<-ch
 
 	// Tests for sleep duration
@@ -182,7 +182,7 @@ func TestFailpoints(t *testing.T) {
 	v, err = failpoint.Eval("gofail/test-sleep2")
 	require.NoError(t, err)
 	require.Nil(t, v)
-	require.True(t, time.Since(start) > 90*time.Millisecond)
+	require.GreaterOrEqual(t, time.Since(start).Milliseconds(), int64(90))
 	<-ch
 
 	// Tests for print

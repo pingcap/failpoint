@@ -304,5 +304,5 @@ func unittest() {
 	restorer := code.NewRestorer(restorePath)
 	err = restorer.Restore()
 	require.Error(t, err)
-	require.True(t, strings.HasPrefix(err.Error(), `cannot merge modifications back automatically`))
+	require.Regexp(t, `cannot merge modifications back automatically.*`, err.Error())
 }
