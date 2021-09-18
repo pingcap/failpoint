@@ -1,3 +1,17 @@
+// Copyright 2021 PingCAP, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package failpoint_test
 
 import (
@@ -6,54 +20,46 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/pingcap/check"
 	"github.com/pingcap/failpoint"
+	"github.com/stretchr/testify/require"
 )
 
-func TestT(t *testing.T) {
-	TestingT(t)
-}
-
-var _ = Suite(&failpointSuite{})
-
-type failpointSuite struct{}
-
-func (s *failpointSuite) TestWithHook(c *C) {
+func TestWithHook(t *testing.T) {
 	err := failpoint.Enable("TestWithHook-test-0", "return(1)")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	val, err := failpoint.EvalContext(context.Background(), "TestWithHook-test-0")
-	c.Assert(val, IsNil)
-	c.Assert(err, NotNil)
+	require.Nil(t, val)
+	require.Error(t, err)
 
 	val, err = failpoint.EvalContext(nil, "TestWithHook-test-0")
-	c.Assert(val, IsNil)
-	c.Assert(err, NotNil)
+	require.Nil(t, val)
+	require.Error(t, err)
 
 	ctx := failpoint.WithHook(context.Background(), func(ctx context.Context, fpname string) bool {
 		return false
 	})
 	val, err = failpoint.EvalContext(ctx, "unit-test")
-	c.Assert(err, NotNil)
-	c.Assert(val, IsNil)
+	require.Error(t, err)
+	require.Nil(t, val)
 
 	ctx = failpoint.WithHook(context.Background(), func(ctx context.Context, fpname string) bool {
 		return true
 	})
 	err = failpoint.Enable("TestWithHook-test-1", "return(1)")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	defer func() {
 		err := failpoint.Disable("TestWithHook-test-1")
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 	}()
 	val, err = failpoint.EvalContext(ctx, "TestWithHook-test-1")
-	c.Assert(err, IsNil)
-	c.Assert(val.(int), Equals, 1)
+	require.NoError(t, err)
+	require.Equal(t, 1, val.(int))
 }
 
-func (s *failpointSuite) TestConcurrent(c *C) {
+func TestConcurrent(t *testing.T) {
 	err := failpoint.Enable("TestWithHook-test-2", "pause")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -61,15 +67,15 @@ func (s *failpointSuite) TestConcurrent(c *C) {
 			return true
 		})
 		val, _ := failpoint.EvalContext(ctx, "TestWithHook-test-2")
-		c.Assert(val, IsNil)
+		require.Nil(t, val)
 		wg.Done()
 	}()
 	time.Sleep(1 * time.Second)
 	err = failpoint.Enable("TestWithHook-test-3", "return(1)")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	err = failpoint.Disable("TestWithHook-test-3")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	err = failpoint.Disable("TestWithHook-test-2")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	wg.Wait()
 }

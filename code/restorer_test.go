@@ -1,3 +1,17 @@
+// Copyright 2021 PingCAP, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package code_test
 
 import (
@@ -7,27 +21,17 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/pingcap/check"
 	"github.com/pingcap/failpoint/code"
+	"github.com/stretchr/testify/require"
 )
 
-func TestCode(t *testing.T) {
-	TestingT(t)
-}
-
-var _ = Suite(&restorerSuite{path: "tmp/restore/"})
-
-type restorerSuite struct {
-	path string
-}
-
-func (s *restorerSuite) TestRestore(c *C) {
+func TestRestore(t *testing.T) {
 	restorer := code.NewRestorer("not-exists-path")
 	err := restorer.Restore()
-	c.Assert(err, ErrorMatches, `lstat not-exists-path: no such file or directory`)
+	require.EqualError(t, err, `lstat not-exists-path: no such file or directory`)
 }
 
-func (s *restorerSuite) TestRestoreModification(c *C) {
+func TestRestoreModification(t *testing.T) {
 	var cases = []struct {
 		filepath string
 		original string
@@ -193,44 +197,44 @@ func unittest() {
 	}
 
 	// Create temp files
-	err := os.MkdirAll(s.path, os.ModePerm)
-	c.Assert(err, IsNil)
+	err := os.MkdirAll(restorePath, os.ModePerm)
+	require.NoError(t, err)
 	for _, cs := range cases {
-		original := filepath.Join(s.path, cs.filepath)
+		original := filepath.Join(restorePath, cs.filepath)
 		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 	}
 
 	// Clean all temp files
 	defer func() {
-		err := os.RemoveAll(s.path)
-		c.Assert(err, IsNil)
+		err := os.RemoveAll(restorePath)
+		require.NoError(t, err)
 	}()
 
-	rewriter := code.NewRewriter(s.path)
+	rewriter := code.NewRewriter(restorePath)
 	err = rewriter.Rewrite()
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	for _, cs := range cases {
-		modified := filepath.Join(s.path, cs.filepath)
+		modified := filepath.Join(restorePath, cs.filepath)
 		err := ioutil.WriteFile(modified, []byte(cs.modified), os.ModePerm)
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 	}
 
 	// Restore workspace
-	restorer := code.NewRestorer(s.path)
+	restorer := code.NewRestorer(restorePath)
 	err = restorer.Restore()
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	for _, cs := range cases {
-		expected := filepath.Join(s.path, cs.filepath)
+		expected := filepath.Join(restorePath, cs.filepath)
 		content, err := ioutil.ReadFile(expected)
-		c.Assert(err, IsNil)
-		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.expected), filenameComment(cs.filepath))
+		require.NoError(t, err)
+		require.Equalf(t, strings.TrimSpace(cs.expected), strings.TrimSpace(string(content)), "%v", cs.filepath)
 	}
 }
 
-func (s *restorerSuite) TestRestoreModificationBad(c *C) {
+func TestRestoreModificationBad(t *testing.T) {
 	var cases = []struct {
 		filepath string
 		original string
@@ -273,32 +277,32 @@ func unittest() {
 	}
 
 	// Create temp files
-	err := os.MkdirAll(s.path, os.ModePerm)
-	c.Assert(err, IsNil)
+	err := os.MkdirAll(restorePath, os.ModePerm)
+	require.NoError(t, err)
 	for _, cs := range cases {
-		original := filepath.Join(s.path, cs.filepath)
+		original := filepath.Join(restorePath, cs.filepath)
 		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 	}
 
 	// Clean all temp files
 	defer func() {
-		err := os.RemoveAll(s.path)
-		c.Assert(err, IsNil)
+		err := os.RemoveAll(restorePath)
+		require.NoError(t, err)
 	}()
 
-	rewriter := code.NewRewriter(s.path)
+	rewriter := code.NewRewriter(restorePath)
 	err = rewriter.Rewrite()
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	for _, cs := range cases {
-		modified := filepath.Join(s.path, cs.filepath)
+		modified := filepath.Join(restorePath, cs.filepath)
 		err := ioutil.WriteFile(modified, []byte(cs.modified), os.ModePerm)
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 	}
 
-	restorer := code.NewRestorer(s.path)
+	restorer := code.NewRestorer(restorePath)
 	err = restorer.Restore()
-	c.Assert(err, NotNil)
-	c.Assert(strings.HasPrefix(err.Error(), `cannot merge modifications back automatically`), IsTrue)
+	require.Error(t, err)
+	require.Regexp(t, `cannot merge modifications back automatically.*`, err.Error())
 }
