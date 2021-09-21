@@ -8,6 +8,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
@@ -18,24 +19,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"testing"
 
-	. "github.com/pingcap/check"
 	"github.com/pingcap/failpoint/code"
+	"github.com/stretchr/testify/require"
 )
 
-type filenameComment string
-
-func (c filenameComment) CheckCommentString() string {
-	return string(c)
-}
-
-var _ = Suite(&rewriterSuite{path: "tmp/rewrite/"})
-
-type rewriterSuite struct {
-	path string
-}
-
-func (s *rewriterSuite) TestRewrite(c *C) {
+func TestRewrite(t *testing.T) {
 	var cases = []struct {
 		filepath string
 		original string
@@ -2405,45 +2395,45 @@ func unittest() {
 	}
 
 	// Create temp files
-	err := os.MkdirAll(s.path, os.ModePerm)
-	c.Assert(err, IsNil)
+	err := os.MkdirAll(rewritePath, os.ModePerm)
+	require.NoError(t, err)
 	for _, cs := range cases {
-		original := filepath.Join(s.path, cs.filepath)
+		original := filepath.Join(rewritePath, cs.filepath)
 		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 	}
 
 	// Clean all temp files
 	defer func() {
-		err := os.RemoveAll(s.path)
-		c.Assert(err, IsNil)
+		err := os.RemoveAll(rewritePath)
+		require.NoError(t, err)
 	}()
 
-	rewriter := code.NewRewriter(s.path)
+	rewriter := code.NewRewriter(rewritePath)
 	err = rewriter.Rewrite()
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	for _, cs := range cases {
-		expected := filepath.Join(s.path, cs.filepath)
+		expected := filepath.Join(rewritePath, cs.filepath)
 		content, err := ioutil.ReadFile(expected)
-		c.Assert(err, IsNil)
-		c.Assert(strings.TrimSpace(string(content)), Equals, strings.TrimSpace(cs.expected), filenameComment(cs.filepath))
+		require.NoError(t, err)
+		require.Equalf(t, strings.TrimSpace(cs.expected), strings.TrimSpace(string(content)), "%v", cs.filepath)
 	}
 
 	// Restore workspace
-	restorer := code.NewRestorer(s.path)
+	restorer := code.NewRestorer(rewritePath)
 	err = restorer.Restore()
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	for _, cs := range cases {
-		original := filepath.Join(s.path, cs.filepath)
+		original := filepath.Join(rewritePath, cs.filepath)
 		content, err := ioutil.ReadFile(original)
-		c.Assert(err, IsNil)
-		c.Assert(string(content), Equals, cs.original)
+		require.NoError(t, err)
+		require.Equal(t, cs.original, string(content))
 	}
 }
 
-func (s *rewriterSuite) TestRewriteBad(c *C) {
+func TestRewriteBad(t *testing.T) {
 	var cases = []struct {
 		filepath string
 		errormsg string
@@ -3567,28 +3557,30 @@ label:
 	}
 
 	// Create temp files
-	err := os.MkdirAll(s.path, os.ModePerm)
-	c.Assert(err, IsNil)
+	err := os.MkdirAll(rewritePath, os.ModePerm)
+	require.NoError(t, err)
 	for _, cs := range cases {
-		original := filepath.Join(s.path, cs.filepath)
+		original := filepath.Join(rewritePath, cs.filepath)
 		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 	}
 
 	// Clean all temp files
 	defer func() {
-		err := os.RemoveAll(s.path)
-		c.Assert(err, IsNil)
+		err := os.RemoveAll(rewritePath)
+		require.NoError(t, err)
 	}()
 
 	// Workspace should keep clean if some error occurred
 	for _, cs := range cases {
-		original := filepath.Join(s.path, cs.filepath)
+		original := filepath.Join(rewritePath, cs.filepath)
 		rewriter := code.NewRewriter(original)
 		err = rewriter.Rewrite()
-		c.Assert(err, ErrorMatches, cs.errormsg, filenameComment(cs.filepath))
+		require.Error(t, err)
+		require.Regexp(t, cs.errormsg, err.Error(), "%v", cs.filepath)
+
 		content, err := ioutil.ReadFile(original)
-		c.Assert(err, IsNil)
-		c.Assert(string(content), Equals, cs.original, filenameComment(cs.filepath))
+		require.NoError(t, err)
+		require.Equalf(t, cs.original, string(content), "%v", cs.filepath)
 	}
 }
