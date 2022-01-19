@@ -33,7 +33,7 @@ func TestRewrite(t *testing.T) {
 		expected string
 	}{
 		{
-			filepath: "lance-test.go",
+			filepath: "func-args-test.go",
 			original: `
 package rewriter_test
 
