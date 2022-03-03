@@ -297,6 +297,13 @@ func (r *Rewriter) rewriteStmts(stmts []ast.Stmt) error {
 			if !ok {
 				break
 			}
+			for _, arg := range call.Args {
+				err := r.rewriteExpr(arg)
+				if err != nil {
+					return err
+				}
+			}
+
 			switch expr := call.Fun.(type) {
 			case *ast.FuncLit:
 				err := r.rewriteFuncLit(expr)

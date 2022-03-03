@@ -21,8 +21,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pingcap/failpoint/code"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pingcap/failpoint/code"
 )
 
 func TestRewrite(t *testing.T) {
@@ -31,6 +32,48 @@ func TestRewrite(t *testing.T) {
 		original string
 		expected string
 	}{
+		{
+			filepath: "func-args-test.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func main() {
+	f := func(g func() error) {}
+	f(func() error {
+		failpoint.Inject("failpoint-name", func(val failpoint.Value) {
+			fmt.Println("unit-test", val)
+		})
+		return nil
+	})
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func main() {
+	f := func(g func() error) {}
+	f(func() error {
+		if val, _err_ := failpoint.Eval(_curpkg_("failpoint-name")); _err_ == nil {
+			fmt.Println("unit-test", val)
+		}
+		return nil
+	})
+}
+`,
+		},
+
 		{
 			filepath: "basic-test.go",
 			original: `
