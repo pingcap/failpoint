@@ -207,12 +207,12 @@ func (fps *Failpoints) Eval(failpath string) (Value, error) {
 	fp, found := fps.reg[failpath]
 	fps.mu.RUnlock()
 	if !found {
-		return nil, errors.Wrapf(ErrNotExist, "error on %s", failpath)
+		return nil, ErrNotExist
 	}
 
 	val, err := fp.Eval()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error on %s", failpath)
+		return nil, err
 	}
 	return val, nil
 }
