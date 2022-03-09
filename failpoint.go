@@ -28,7 +28,7 @@ type (
 	// Value represents value that retrieved from failpoint terms.
 	// It can be used as following types:
 	// 1. val.(int)      // GO_FAILPOINTS="failpoint-name=return(1)"
-	// 2. val.(string)   // GO_FAILPOINTS="failpoint-name=return('1')"
+	// 2. val.(string)   // GO_FAILPOINTS="failpoint-name=return(\"1\")"
 	// 3. val.(bool)     // GO_FAILPOINTS="failpoint-name=return(true)"
 	Value interface{}
 
