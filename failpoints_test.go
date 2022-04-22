@@ -49,7 +49,7 @@ func TestFailpoints(t *testing.T) {
 	require.Nil(t, val)
 
 	err = fps.Disable("failpoints-test-1")
-	require.EqualError(t, err, `error on failpoints-test-1: failpoint: failpoint is disabled`)
+	require.NoError(t, err)
 
 	err = fps.Enable("failpoints-test-1", "return(1)")
 	require.NoError(t, err)

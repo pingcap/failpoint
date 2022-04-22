@@ -82,21 +82,18 @@ func (fp *Failpoint) EnableWith(inTerms string, action func() error) error {
 }
 
 // Disable stops a failpoint
-func (fp *Failpoint) Disable() error {
+func (fp *Failpoint) Disable() {
 	select {
 	case <-fp.waitChan:
-		return ErrDisabled
+		// already disabled
+		return
 	default:
 		close(fp.waitChan)
 	}
 
 	fp.mu.Lock()
 	defer fp.mu.Unlock()
-	if fp.t == nil {
-		return ErrDisabled
-	}
 	fp.t = nil
-	return nil
 }
 
 // Eval evaluates a failpoint's value, It will return the evaluated value or
