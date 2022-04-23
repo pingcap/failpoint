@@ -140,12 +140,9 @@ func (fps *Failpoints) Disable(failpath string) error {
 
 	fp := fps.reg[failpath]
 	if fp == nil {
-		return errors.Wrapf(ErrDisabled, "error on %s", failpath)
+		return errors.Wrapf(ErrNotExist, "error on %s", failpath)
 	}
-	err := fp.Disable()
-	if err != nil {
-		return errors.Wrapf(err, "error on %s", failpath)
-	}
+	fp.Disable()
 	return nil
 }
 
