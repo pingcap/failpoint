@@ -2,7 +2,7 @@
 [![LICENSE](https://img.shields.io/github/license/pingcap/failpoint.svg)](https://github.com/pingcap/failpoint/blob/master/LICENSE)
 [![Language](https://img.shields.io/badge/Language-Go-blue.svg)](https://golang.org/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pingcap/failpoint)](https://goreportcard.com/report/github.com/pingcap/failpoint)
-[![Build Status](https://api.travis-ci.com/pingcap/failpoint.svg?branch=master)](https://travis-ci.com/pingcap/failpoint)
+[![Build Status](https://github.com/pingcap/failpoint/actions/workflows/suite.yml/badge.svg?branch=master)](https://github.com/pingcap/failpoint/actions/workflows/suite.yml?query=event%3Apush+branch%3Amaster)
 [![Coverage Status](https://codecov.io/gh/pingcap/failpoint/branch/master/graph/badge.svg)](https://codecov.io/gh/pingcap/failpoint)
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)  
 
