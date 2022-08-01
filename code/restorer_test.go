@@ -197,11 +197,11 @@ func unittest() {
 	}
 
 	// Create temp files
-	err := os.MkdirAll(restorePath, os.ModePerm)
+	err := os.MkdirAll(restorePath, 0755)
 	require.NoError(t, err)
 	for _, cs := range cases {
 		original := filepath.Join(restorePath, cs.filepath)
-		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
+		err := ioutil.WriteFile(original, []byte(cs.original), 0644)
 		require.NoError(t, err)
 	}
 
@@ -217,7 +217,7 @@ func unittest() {
 
 	for _, cs := range cases {
 		modified := filepath.Join(restorePath, cs.filepath)
-		err := ioutil.WriteFile(modified, []byte(cs.modified), os.ModePerm)
+		err := ioutil.WriteFile(modified, []byte(cs.modified), 0644)
 		require.NoError(t, err)
 	}
 
@@ -277,11 +277,11 @@ func unittest() {
 	}
 
 	// Create temp files
-	err := os.MkdirAll(restorePath, os.ModePerm)
+	err := os.MkdirAll(restorePath, 0755)
 	require.NoError(t, err)
 	for _, cs := range cases {
 		original := filepath.Join(restorePath, cs.filepath)
-		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
+		err := ioutil.WriteFile(original, []byte(cs.original), 0644)
 		require.NoError(t, err)
 	}
 
@@ -297,7 +297,7 @@ func unittest() {
 
 	for _, cs := range cases {
 		modified := filepath.Join(restorePath, cs.filepath)
-		err := ioutil.WriteFile(modified, []byte(cs.modified), os.ModePerm)
+		err := ioutil.WriteFile(modified, []byte(cs.modified), 0644)
 		require.NoError(t, err)
 	}
 

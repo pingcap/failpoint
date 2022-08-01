@@ -112,7 +112,7 @@ func (r Restorer) Restore() error {
 				return fmt.Errorf("cannot merge modifications back automatically %s", patches[i].String())
 			}
 		}
-		if err := ioutil.WriteFile(filePath, []byte(pathedContent), os.ModePerm); err != nil {
+		if err := ioutil.WriteFile(filePath, []byte(pathedContent), 0644); err != nil {
 			return err
 		}
 		if err := os.Remove(originFileName); err != nil {
@@ -155,5 +155,5 @@ func %s(name string) string {
 	return  __failpointBindingCache.pkgpath + "/" + name
 }
 `, pak, extendPkgName)
-	return ioutil.WriteFile(bindingFile, []byte(bindingContent), os.ModePerm)
+	return ioutil.WriteFile(bindingFile, []byte(bindingContent), 0644)
 }

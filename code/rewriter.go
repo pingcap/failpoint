@@ -647,7 +647,7 @@ func (r *Rewriter) RewriteFile(path string) (err error) {
 		return err
 	}
 
-	newFile, err := os.OpenFile(path, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	newFile, err := os.OpenFile(path, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
