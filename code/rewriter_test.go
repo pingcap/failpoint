@@ -2438,11 +2438,11 @@ func unittest() {
 	}
 
 	// Create temp files
-	err := os.MkdirAll(rewritePath, os.ModePerm)
+	err := os.MkdirAll(rewritePath, 0644)
 	require.NoError(t, err)
 	for _, cs := range cases {
 		original := filepath.Join(rewritePath, cs.filepath)
-		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
+		err := ioutil.WriteFile(original, []byte(cs.original), 0644)
 		require.NoError(t, err)
 	}
 
@@ -3600,11 +3600,11 @@ label:
 	}
 
 	// Create temp files
-	err := os.MkdirAll(rewritePath, os.ModePerm)
+	err := os.MkdirAll(rewritePath, 0644)
 	require.NoError(t, err)
 	for _, cs := range cases {
 		original := filepath.Join(rewritePath, cs.filepath)
-		err := ioutil.WriteFile(original, []byte(cs.original), os.ModePerm)
+		err := ioutil.WriteFile(original, []byte(cs.original), 0644)
 		require.NoError(t, err)
 	}
 
