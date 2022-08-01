@@ -1,4 +1,4 @@
-name: Suite
+name: Build & Test
 
 on:
   push:
