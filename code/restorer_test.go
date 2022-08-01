@@ -197,7 +197,7 @@ func unittest() {
 	}
 
 	// Create temp files
-	err := os.MkdirAll(restorePath, 0644)
+	err := os.MkdirAll(restorePath, 0755)
 	require.NoError(t, err)
 	for _, cs := range cases {
 		original := filepath.Join(restorePath, cs.filepath)
@@ -277,7 +277,7 @@ func unittest() {
 	}
 
 	// Create temp files
-	err := os.MkdirAll(restorePath, 0644)
+	err := os.MkdirAll(restorePath, 0755)
 	require.NoError(t, err)
 	for _, cs := range cases {
 		original := filepath.Join(restorePath, cs.filepath)

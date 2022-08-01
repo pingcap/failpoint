@@ -2438,7 +2438,7 @@ func unittest() {
 	}
 
 	// Create temp files
-	err := os.MkdirAll(rewritePath, 0644)
+	err := os.MkdirAll(rewritePath, 0755)
 	require.NoError(t, err)
 	for _, cs := range cases {
 		original := filepath.Join(rewritePath, cs.filepath)
@@ -3600,7 +3600,7 @@ label:
 	}
 
 	// Create temp files
-	err := os.MkdirAll(rewritePath, 0644)
+	err := os.MkdirAll(rewritePath, 0755)
 	require.NoError(t, err)
 	for _, cs := range cases {
 		original := filepath.Join(rewritePath, cs.filepath)
