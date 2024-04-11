@@ -36,26 +36,30 @@ func InjectContext(ctx context.Context, fpname string, fpbody interface{}) {}
 
 // Break will generate a break statement in a loop, e.g:
 // case1:
-//   for i := 0; i < max; i++ {
-//       failpoint.Inject("break-if-index-equal-2", func() {
-//           if i == 2 {
-//               failpoint.Break()
-//           }
-//       }
-//   }
+//
+//	for i := 0; i < max; i++ {
+//	    failpoint.Inject("break-if-index-equal-2", func() {
+//	        if i == 2 {
+//	            failpoint.Break()
+//	        }
+//	    }
+//	}
+//
 // failpoint.Break() => break
 //
 // case2:
-//   outer:
-//   for i := 0; i < max; i++ {
-//       for j := 0; j < max / 2; j++ {
-//           failpoint.Inject("break-if-index-i-equal-j", func() {
-//               if i == j {
-//                   failpoint.Break("outer")
-//               }
-//           }
-//       }
-//   }
+//
+//	outer:
+//	for i := 0; i < max; i++ {
+//	    for j := 0; j < max / 2; j++ {
+//	        failpoint.Inject("break-if-index-i-equal-j", func() {
+//	            if i == j {
+//	                failpoint.Break("outer")
+//	            }
+//	        }
+//	    }
+//	}
+//
 // failpoint.Break("outer") => break outer
 func Break(label ...string) {}
 
@@ -73,16 +77,18 @@ func Return(result ...interface{}) {}
 
 // Label will generate a label statement, e.g.
 // case1:
-//   failpoint.Label("outer")
-//   for i := 0; i < max; i++ {
-//       for j := 0; j < max / 2; j++ {
-//           failpoint.Inject("break-if-index-i-equal-j", func() {
-//               if i == j {
-//                   failpoint.Break("outer")
-//               }
-//           }
-//       }
-//   }
+//
+//	failpoint.Label("outer")
+//	for i := 0; i < max; i++ {
+//	    for j := 0; j < max / 2; j++ {
+//	        failpoint.Inject("break-if-index-i-equal-j", func() {
+//	            if i == j {
+//	                failpoint.Break("outer")
+//	            }
+//	        }
+//	    }
+//	}
+//
 // failpoint.Label("outer") => outer:
 // failpoint.Break("outer") => break outer
 func Label(label string) {}

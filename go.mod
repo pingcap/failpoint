@@ -6,6 +6,7 @@ require (
 	github.com/sergi/go-diff v1.1.0
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/goleak v1.1.10
+	golang.org/x/mod v0.17.0
 )
 
 go 1.13

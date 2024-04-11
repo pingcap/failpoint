@@ -32,7 +32,7 @@ const (
 	packageName     = "failpoint"
 	evalFunction    = "Eval"
 	evalCtxFunction = "EvalContext"
-	extendPkgName   = "_curpkg_"
+	ExtendPkgName   = "_curpkg_"
 	// It is an indicator to indicate the label is converted from `failpoint.Label("...")`
 	// We use an illegal suffix to avoid conflict with the user's code
 	// So `failpoint.Label("label1")` will be converted to `label1-tmp-marker:` in expression
@@ -44,12 +44,13 @@ const (
 // corresponding statements in Golang. It will traverse the specified path and filter
 // out files which do not have failpoint injection sites, and rewrite the remain files.
 type Rewriter struct {
-	rewriteDir    string
-	currentPath   string
-	currentFile   *ast.File
-	currsetFset   *token.FileSet
-	failpointName string
-	rewritten     bool
+	rewriteDir      string
+	currentPath     string
+	currentFile     *ast.File
+	currsetFset     *token.FileSet
+	failpointName   string
+	allowNotChecked bool
+	rewritten       bool
 
 	output io.Writer
 }
@@ -64,6 +65,21 @@ func NewRewriter(path string) *Rewriter {
 // SetOutput sets a writer and the rewrite results will write to the writer instead of generate a stash file
 func (r *Rewriter) SetOutput(out io.Writer) {
 	r.output = out
+}
+
+// SetAllowNotChecked sets whether the rewriter allows the file which does not import failpoint package.
+func (r *Rewriter) SetAllowNotChecked(b bool) {
+	r.allowNotChecked = b
+}
+
+// GetRewritten returns whether the rewriter has rewritten the file in a RewriteFile call.
+func (r *Rewriter) GetRewritten() bool {
+	return r.rewritten
+}
+
+// GetCurrentFile returns the current file which is being rewritten
+func (r *Rewriter) GetCurrentFile() *ast.File {
+	return r.currentFile
 }
 
 func (r *Rewriter) pos(pos token.Pos) string {
@@ -603,6 +619,9 @@ func (r *Rewriter) RewriteFile(path string) (err error) {
 		}
 	}
 	if failpointImport == nil {
+		if r.allowNotChecked {
+			return nil
+		}
 		panic("import path should be check before rewrite")
 	}
 	if failpointImport.Name != nil {
