@@ -39,18 +39,15 @@ const (
 // │   ├── bar.go
 // │   └── bar.go__failpoint_stash__
 // └── foobar
-//
-//	   ├── foobar.go
-//	   └── foobar.go__failpoint_stash__
-//
+//     ├── foobar.go
+//     └── foobar.go__failpoint_stash__
 // Which will be restored as below:
 // ├── foo
 // │   └── foo.go <- foo.go__failpoint_stash__
 // ├── bar
 // │   └── bar.go <- bar.go__failpoint_stash__
 // └── foobar
-//
-//	   └── foobar.go <- foobar.go__failpoint_stash__
+//     └── foobar.go <- foobar.go__failpoint_stash__
 type Restorer struct {
 	path string
 }
