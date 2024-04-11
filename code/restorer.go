@@ -32,6 +32,7 @@ const (
 
 // Restorer represents a manager to restore currentFile tree which has been modified by
 // `failpoint-ctl enable`, e.g:
+/*
 // ├── foo
 // │   ├── foo.go
 // │   └── foo.go__failpoint_stash__
@@ -48,6 +49,7 @@ const (
 // │   └── bar.go <- bar.go__failpoint_stash__
 // └── foobar
 //     └── foobar.go <- foobar.go__failpoint_stash__
+*/
 type Restorer struct {
 	path string
 }
