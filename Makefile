@@ -7,6 +7,7 @@ LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.gitBranch=$(sh
 LDFLAGS += -X "github.com/pingcap/failpoint/failpoint-ctl/version.goVersion=$(shell go version)"
 
 FAILPOINT_CTL_BIN := bin/failpoint-ctl
+FAILPOINT_TOOLEXEC_BIN := bin/failpoint-toolexec
 
 path_to_add := $(addsuffix /bin,$(subst :,/bin:,$(GOPATH)))
 export PATH := $(path_to_add):$(PATH):$(shell pwd)/tools/bin
@@ -31,11 +32,16 @@ default: build checksuccess
 
 build:
 	$(GOBUILD) $(RACE_FLAG) -ldflags '$(LDFLAGS)' -o $(FAILPOINT_CTL_BIN) failpoint-ctl/main.go
+	$(GOBUILD) $(RACE_FLAG) -ldflags '$(LDFLAGS)' -o $(FAILPOINT_TOOLEXEC_BIN) failpoint-toolexec/main.go
 
 checksuccess:
 	@if [ -f $(FAILPOINT_CTL_BIN) ]; \
 	then \
 		echo "failpoint-ctl build successfully :-) !" ; \
+	fi
+	@if [ -f $(FAILPOINT_TOOLEXEC_BIN) ]; \
+	then \
+		echo "failpoint-toolexec build successfully :-) !" ; \
 	fi
 
 test: gotest check-static

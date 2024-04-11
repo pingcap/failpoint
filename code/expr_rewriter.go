@@ -66,7 +66,7 @@ func (r *Rewriter) rewriteInject(call *ast.CallExpr) (bool, ast.Stmt, error) {
 	}
 
 	fpnameExtendCall := &ast.CallExpr{
-		Fun:  ast.NewIdent(extendPkgName),
+		Fun:  ast.NewIdent(ExtendPkgName),
 		Args: []ast.Expr{fpname},
 	}
 
@@ -163,7 +163,7 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 	}
 
 	fpnameExtendCall := &ast.CallExpr{
-		Fun:  ast.NewIdent(extendPkgName),
+		Fun:  ast.NewIdent(ExtendPkgName),
 		Args: []ast.Expr{fpname},
 	}
 
