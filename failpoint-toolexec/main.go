@@ -72,7 +72,7 @@ func injectFailpoint(argsP *[]string) error {
 			break
 		}
 	}
-	if !strings.HasPrefix(module, callersModule) {
+	if !strings.HasPrefix(module, callersModule) && module != "main" {
 		return nil
 	}
 

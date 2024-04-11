@@ -10,7 +10,7 @@ An implementation of [failpoints][failpoint] for Golang. Fail points are used to
 
 [failpoint]: http://www.freebsd.org/cgi/man.cgi?query=fail
 
-## Quick Start
+## Quick Start (use `failpoint-ctl`)
 
 1.  Build `failpoint-ctl` from source
 
@@ -49,6 +49,47 @@ An implementation of [failpoints][failpoint] for Golang. Fail points are used to
 
     ```bash
     GO_FAILPOINTS="main/testPanic=return(true)" go run your-program.go binding__failpoint_binding__.go
+    ```
+
+## Quick Start (use `failpoint-toolexec`)
+
+1.  Build `failpoint-toolexec` from source
+
+    ``` bash
+    git clone https://github.com/pingcap/failpoint.git
+    cd failpoint
+    make
+    ls bin/failpoint-toolexec
+    ```
+
+2.  Inject failpoints to your program, eg:
+
+    ``` go
+    package main
+
+    import "github.com/pingcap/failpoint"
+
+    func main() {
+        failpoint.Inject("testPanic", func() {
+            panic("failpoint triggerd")
+        })
+    }
+    ```
+
+3.  Use a separate build cache to avoid mixing caches without `failpoint-toolexec`, and build
+
+    `GOCACHE=/tmp/failpoint-cache go build -toolexec path/to/failpoint-toolexec`
+
+4.  Enable failpoints with `GO_FAILPOINTS` environment variable
+
+    ``` bash
+    GO_FAILPOINTS="main/testPanic=return(true)" ./your-program
+    ```
+
+5.  You can also use `go run` or `go test`, like:
+
+    ```bash
+    GOCACHE=/tmp/failpoint-cache GO_FAILPOINTS="main/testPanic=return(true)" go run -toolexec path/to/failpoint-toolexec your-program.go
     ```
 
 ## Design principles
