@@ -88,7 +88,7 @@ func injectFailpoint(argsP *[]string) error {
 	writer := &code.Rewriter{}
 	writer.SetAllowNotChecked(true)
 	for _, idx := range fileIndices {
-		needExtraFile = needExtraFile || injectFailpointForFile(writer, &args[idx], module)
+		needExtraFile = injectFailpointForFile(writer, &args[idx], module) || needExtraFile
 	}
 	if needExtraFile {
 		newFile := filepath.Join(tmpFolder, module, "failpoint_toolexec_extra.go")
