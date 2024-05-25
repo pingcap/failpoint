@@ -228,3 +228,15 @@ func testPanic() {
 	_ = failpoint.Enable("test-panic", `panic`)
 	_, _ = failpoint.Eval("test-panic")
 }
+
+func TestCall(t *testing.T) {
+	var capturedArg int
+	require.NoError(t, failpoint.EnableCall("test", func(a int) {
+		capturedArg = a
+	}))
+	t.Cleanup(func() {
+		require.NoError(t, failpoint.Disable("test"))
+	})
+	failpoint.Call("test", 123)
+	require.Equal(t, 123, capturedArg)
+}

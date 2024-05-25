@@ -34,6 +34,12 @@ func Inject(fpname string, fpbody interface{}) {}
 // failpoint.InjectContext(ctx, "fail-point-name", func(_ failpoint.Value) (...){}
 func InjectContext(ctx context.Context, fpname string, fpbody interface{}) {}
 
+// InjectCall marks a fail point routine, which will be rewrite to a `if` statement
+// and be triggered by fail point name specified `fpname` using EnableCall.
+// Note: this function can only be used when EnableCall is used in the same process
+// as the InjectCall, otherwise it's a noop.
+func InjectCall(fpname string, args ...any) {}
+
 // Break will generate a break statement in a loop, e.g:
 // case1:
 //

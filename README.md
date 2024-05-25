@@ -45,6 +45,8 @@ An implementation of [failpoints][failpoint] for Golang. Fail points are used to
     GO_FAILPOINTS="main/testPanic=return(true)" ./your-program
     ```
 
+    Note: `GO_FAILPOINTS` does not work with `InjectCall` type of marker.
+
 6.  If you use `go run` to run the test, don't forget to add the generated `binding__failpoint_binding__.go` in your command, like:
 
     ```bash
@@ -137,6 +139,7 @@ An implementation of [failpoints][failpoint] for Golang. Fail points are used to
 
     - `func Inject(fpname string, fpblock func(val Value)) {}`
     - `func InjectContext(fpname string, ctx context.Context, fpblock func(val Value)) {}`
+    - `func InjectCall(fpname string, fn any) {}`
     - `func Break(label ...string) {}`
     - `func Goto(label string) {}`
     - `func Continue(label ...string) {}`
@@ -147,6 +150,8 @@ An implementation of [failpoints][failpoint] for Golang. Fail points are used to
 - Supported failpoint environment variable
 
     failpoint can be enabled by export environment variables with the following patten, which is quite similar to [freebsd failpoint SYSCTL VARIABLES](https://www.freebsd.org/cgi/man.cgi?query=fail)
+
+    Note: `InjectCall` cannot be enabled by environment variables.
 
     ```regexp
     [<percent>%][<count>*]<type>[(args...)][-><more terms>]
@@ -239,6 +244,8 @@ active in parallel tests or other cases. For example,
         fmt.Println("unit-test", val)
     }
     ```
+
+- You can use `failpoint.InjectCall` to inject a function call, this type of marker can only be enabled using `failpoint.EnableCall` and it must be called in the same process as the `InjectCall` call site. Using this marker, you can avoid failpoint code pollute you source code. See [examples](./examples/injectcall/inject_call.go).
 
 - You can control a failpoint by failpoint.WithHook
 

@@ -31,6 +31,7 @@ const (
 	packagePath     = "github.com/pingcap/failpoint"
 	packageName     = "failpoint"
 	evalFunction    = "Eval"
+	callFunction    = "Call"
 	evalCtxFunction = "EvalContext"
 	ExtendPkgName   = "_curpkg_"
 	// It is an indicator to indicate the label is converted from `failpoint.Label("...")`

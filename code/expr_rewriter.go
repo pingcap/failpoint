@@ -26,6 +26,7 @@ type exprRewriter func(rewriter *Rewriter, call *ast.CallExpr) (rewritten bool, 
 var exprRewriters = map[string]exprRewriter{
 	"Inject":        (*Rewriter).rewriteInject,
 	"InjectContext": (*Rewriter).rewriteInjectContext,
+	"InjectCall":    (*Rewriter).rewriteInjectCall,
 	"Break":         (*Rewriter).rewriteBreak,
 	"Continue":      (*Rewriter).rewriteContinue,
 	"Label":         (*Rewriter).rewriteLabel,
@@ -202,6 +203,74 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 	err := ast.NewIdent("_err_")
 	init := &ast.AssignStmt{
 		Lhs: []ast.Expr{argName, err},
+		Rhs: []ast.Expr{checkCall},
+		Tok: token.DEFINE,
+	}
+
+	cond := &ast.BinaryExpr{
+		X:  err,
+		Op: token.EQL,
+		Y:  ast.NewIdent("nil"),
+	}
+	stmt := &ast.IfStmt{
+		If:   call.Pos(),
+		Init: init,
+		Cond: cond,
+		Body: ifBody,
+	}
+	return true, stmt, nil
+}
+
+func (r *Rewriter) rewriteInjectCall(call *ast.CallExpr) (bool, ast.Stmt, error) {
+	if len(call.Args) < 1 {
+		return false, nil, fmt.Errorf("failpoint.InjectCall: expect at least 1 arguments but got %v in %s", len(call.Args), r.pos(call.Pos()))
+	}
+	// First argument need not to be a string literal, any string type stuff is ok.
+	// Type safe is convinced by compiler.
+	fpname, ok := call.Args[0].(ast.Expr)
+	if !ok {
+		return false, nil, fmt.Errorf("failpoint.InjectCall: first argument expect a valid expression in %s", r.pos(call.Pos()))
+	}
+
+	fpnameExtendCall := &ast.CallExpr{
+		Fun:  ast.NewIdent(ExtendPkgName),
+		Args: []ast.Expr{fpname},
+	}
+
+	// failpoint.InjectFn("name", a, b, c)
+	//    |
+	//    v
+	// if _, _err_ := failpoint.Eval(_curpkg_("name")); _err_ == nil {
+	//     failpoint.Call(_curpkg_("name"), a, b, c)
+	// }
+	fnArgs := make([]ast.Expr, 0, len(call.Args))
+	fnArgs = append(fnArgs, fpnameExtendCall)
+	fnArgs = append(fnArgs, call.Args[1:]...)
+	fnCall := &ast.ExprStmt{
+		X: &ast.CallExpr{
+			Fun: &ast.SelectorExpr{
+				X:   &ast.Ident{NamePos: call.Pos(), Name: r.failpointName},
+				Sel: ast.NewIdent(callFunction),
+			},
+			Args: fnArgs,
+		},
+	}
+	ifBody := &ast.BlockStmt{
+		Lbrace: call.Pos(),
+		List:   []ast.Stmt{fnCall},
+		Rbrace: call.End(),
+	}
+
+	checkCall := &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   &ast.Ident{NamePos: call.Pos(), Name: r.failpointName},
+			Sel: ast.NewIdent(evalFunction),
+		},
+		Args: []ast.Expr{fpnameExtendCall},
+	}
+	err := ast.NewIdent("_err_")
+	init := &ast.AssignStmt{
+		Lhs: []ast.Expr{ast.NewIdent("_"), err},
 		Rhs: []ast.Expr{checkCall},
 		Tok: token.DEFINE,
 	}
