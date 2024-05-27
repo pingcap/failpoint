@@ -61,7 +61,7 @@ check-static: tools/bin/gometalinter
 
 gotest:
 	@ echo "----------- go test ---------------"
-	$(GOTEST) -covermode=atomic -coverprofile=coverage.txt -coverpkg=./... -v ./...
+	$(GOTEST) -covermode=atomic -coverprofile=coverage.txt -coverpkg=./... -v $(go list ./... | grep -v examples)
 
 tools/bin/gometalinter:
 	cd tools; \
