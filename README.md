@@ -139,7 +139,7 @@ An implementation of [failpoints][failpoint] for Golang. Fail points are used to
 
     - `func Inject(fpname string, fpblock func(val Value)) {}`
     - `func InjectContext(fpname string, ctx context.Context, fpblock func(val Value)) {}`
-    - `func InjectCall(fpname string, fn any) {}`
+    - `func InjectCall(fpname string, args ...any) {}`
     - `func Break(label ...string) {}`
     - `func Goto(label string) {}`
     - `func Continue(label ...string) {}`

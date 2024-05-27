@@ -72,3 +72,7 @@ test-examples:
 	$(GO) run failpoint-ctl/main.go enable ./examples
 	$(GOTEST) -covermode=atomic -coverprofile=coverage.txt -coverpkg=./... -v ./examples/...
 	$(GO) run failpoint-ctl/main.go disable ./examples
+
+test-examples-toolexec: build
+	@ echo "----------- go test examples using toolexec ---------------"
+	GOCACHE=/tmp/failpoint-cache $(GOTEST) -covermode=atomic -coverprofile=coverage.txt -coverpkg=./... -toolexec="$(PWD)/bin/failpoint-toolexec" -v ./examples/...

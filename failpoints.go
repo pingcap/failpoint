@@ -317,5 +317,8 @@ func Eval(failpath string) (Value, error) {
 
 // Call calls the function passed by EnableCall with args supplied in InjectCall.
 func Call(failpath string, args ...any) {
+	if _, err := failpoints.Eval(failpath); err != nil {
+		return
+	}
 	failpoints.Call(failpath, args...)
 }

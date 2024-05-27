@@ -237,12 +237,10 @@ func (r *Rewriter) rewriteInjectCall(call *ast.CallExpr) (bool, ast.Stmt, error)
 		Args: []ast.Expr{fpname},
 	}
 
-	// failpoint.InjectFn("name", a, b, c)
+	// failpoint.InjectCall("name", a, b, c)
 	//    |
 	//    v
-	// if _, _err_ := failpoint.Eval(_curpkg_("name")); _err_ == nil {
-	//     failpoint.Call(_curpkg_("name"), a, b, c)
-	// }
+	// failpoint.Call(_curpkg_("name"), a, b, c)
 	fnArgs := make([]ast.Expr, 0, len(call.Args))
 	fnArgs = append(fnArgs, fpnameExtendCall)
 	fnArgs = append(fnArgs, call.Args[1:]...)
@@ -255,38 +253,7 @@ func (r *Rewriter) rewriteInjectCall(call *ast.CallExpr) (bool, ast.Stmt, error)
 			Args: fnArgs,
 		},
 	}
-	ifBody := &ast.BlockStmt{
-		Lbrace: call.Pos(),
-		List:   []ast.Stmt{fnCall},
-		Rbrace: call.End(),
-	}
-
-	checkCall := &ast.CallExpr{
-		Fun: &ast.SelectorExpr{
-			X:   &ast.Ident{NamePos: call.Pos(), Name: r.failpointName},
-			Sel: ast.NewIdent(evalFunction),
-		},
-		Args: []ast.Expr{fpnameExtendCall},
-	}
-	err := ast.NewIdent("_err_")
-	init := &ast.AssignStmt{
-		Lhs: []ast.Expr{ast.NewIdent("_"), err},
-		Rhs: []ast.Expr{checkCall},
-		Tok: token.DEFINE,
-	}
-
-	cond := &ast.BinaryExpr{
-		X:  err,
-		Op: token.EQL,
-		Y:  ast.NewIdent("nil"),
-	}
-	stmt := &ast.IfStmt{
-		If:   call.Pos(),
-		Init: init,
-		Cond: cond,
-		Body: ifBody,
-	}
-	return true, stmt, nil
+	return true, fnCall, nil
 }
 
 func (r *Rewriter) rewriteBreak(call *ast.CallExpr) (bool, ast.Stmt, error) {
