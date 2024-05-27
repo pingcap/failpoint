@@ -26,6 +26,7 @@ type exprRewriter func(rewriter *Rewriter, call *ast.CallExpr) (rewritten bool, 
 var exprRewriters = map[string]exprRewriter{
 	"Inject":        (*Rewriter).rewriteInject,
 	"InjectContext": (*Rewriter).rewriteInjectContext,
+	"InjectCall":    (*Rewriter).rewriteInjectCall,
 	"Break":         (*Rewriter).rewriteBreak,
 	"Continue":      (*Rewriter).rewriteContinue,
 	"Label":         (*Rewriter).rewriteLabel,
@@ -218,6 +219,41 @@ func (r *Rewriter) rewriteInjectContext(call *ast.CallExpr) (bool, ast.Stmt, err
 		Body: ifBody,
 	}
 	return true, stmt, nil
+}
+
+func (r *Rewriter) rewriteInjectCall(call *ast.CallExpr) (bool, ast.Stmt, error) {
+	if len(call.Args) < 1 {
+		return false, nil, fmt.Errorf("failpoint.InjectCall: expect at least 1 arguments but got %v in %s", len(call.Args), r.pos(call.Pos()))
+	}
+	// First argument need not to be a string literal, any string type stuff is ok.
+	// Type safe is convinced by compiler.
+	fpname, ok := call.Args[0].(ast.Expr)
+	if !ok {
+		return false, nil, fmt.Errorf("failpoint.InjectCall: first argument expect a valid expression in %s", r.pos(call.Pos()))
+	}
+
+	fpnameExtendCall := &ast.CallExpr{
+		Fun:  ast.NewIdent(ExtendPkgName),
+		Args: []ast.Expr{fpname},
+	}
+
+	// failpoint.InjectCall("name", a, b, c)
+	//    |
+	//    v
+	// failpoint.Call(_curpkg_("name"), a, b, c)
+	fnArgs := make([]ast.Expr, 0, len(call.Args))
+	fnArgs = append(fnArgs, fpnameExtendCall)
+	fnArgs = append(fnArgs, call.Args[1:]...)
+	fnCall := &ast.ExprStmt{
+		X: &ast.CallExpr{
+			Fun: &ast.SelectorExpr{
+				X:   &ast.Ident{NamePos: call.Pos(), Name: r.failpointName},
+				Sel: ast.NewIdent(callFunction),
+			},
+			Args: fnArgs,
+		},
+	}
+	return true, fnCall, nil
 }
 
 func (r *Rewriter) rewriteBreak(call *ast.CallExpr) (bool, ast.Stmt, error) {

@@ -15,6 +15,7 @@
 package code_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -26,12 +27,15 @@ import (
 	"github.com/pingcap/failpoint/code"
 )
 
+type rewriteCase struct {
+	filepath string
+	errormsg string
+	original string
+	expected string
+}
+
 func TestRewrite(t *testing.T) {
-	var cases = []struct {
-		filepath string
-		original string
-		expected string
-	}{
+	var cases = []rewriteCase{
 		{
 			filepath: "func-args-test.go",
 			original: `
@@ -2477,11 +2481,7 @@ func unittest() {
 }
 
 func TestRewriteBad(t *testing.T) {
-	var cases = []struct {
-		filepath string
-		errormsg string
-		original string
-	}{
+	var cases = []rewriteCase{
 
 		{
 			filepath: "bad-basic-test.go",
@@ -3625,5 +3625,87 @@ label:
 		content, err := ioutil.ReadFile(original)
 		require.NoError(t, err)
 		require.Equalf(t, cs.original, string(content), "%v", cs.filepath)
+	}
+}
+
+func TestRewriteInjectCall(t *testing.T) {
+	cases := []rewriteCase{
+
+		{
+			filepath: "test.go",
+			original: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func main() {
+	var (
+		a int
+		b string
+		c []float64
+	)
+	a, b, c = 1, "hello", []float64{1.0, 2.0}
+	failpoint.InjectCall("test", a, b, c)
+}
+`,
+			expected: `
+package rewriter_test
+
+import (
+	"fmt"
+
+	"github.com/pingcap/failpoint"
+)
+
+func main() {
+	var (
+		a int
+		b string
+		c []float64
+	)
+	a, b, c = 1, "hello", []float64{1.0, 2.0}
+	if _, _err_ := failpoint.Eval(_curpkg_("test")); _err_ == nil {
+		failpoint.Call(_curpkg_("test"), a, b, c)
+	}
+}
+`,
+		},
+	}
+	tempDir := t.TempDir()
+	for i, cs := range cases {
+		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
+			caseDir := filepath.Join(tempDir, fmt.Sprintf("case-%d", i))
+			require.NoError(t, os.Mkdir(caseDir, 0755))
+			caseFileName := filepath.Join(caseDir, cs.filepath)
+			require.NoError(t, os.WriteFile(caseFileName, []byte(cs.original), 0644))
+
+			rewriter := code.NewRewriter(caseDir)
+			err := rewriter.Rewrite()
+			if cs.errormsg != "" {
+				require.Error(t, err)
+				require.Regexp(t, cs.errormsg, err.Error(), "%v", cs.filepath)
+
+				content, err := os.ReadFile(caseFileName)
+				require.NoError(t, err)
+				require.Equalf(t, cs.original, string(content), "%v", cs.filepath)
+			} else {
+				require.NoError(t, err)
+
+				content, err := os.ReadFile(caseFileName)
+				require.NoError(t, err)
+				require.Equalf(t, strings.TrimSpace(cs.expected), strings.TrimSpace(string(content)), "%v", cs.filepath)
+
+				restorer := code.NewRestorer(caseDir)
+				err = restorer.Restore()
+				require.NoError(t, err)
+				content, err = os.ReadFile(caseFileName)
+				require.NoError(t, err)
+				require.Equal(t, cs.original, string(content))
+			}
+		})
 	}
 }

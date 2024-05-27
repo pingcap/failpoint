@@ -16,6 +16,8 @@ package failpoint
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"sync"
 )
 
@@ -41,6 +43,8 @@ type (
 		mu       sync.RWMutex
 		t        *terms
 		waitChan chan struct{}
+		// fn is the function to be called for InjectCall type failpoint.
+		fn *reflect.Value
 	}
 )
 
@@ -81,6 +85,24 @@ func (fp *Failpoint) EnableWith(inTerms string, action func() error) error {
 	return nil
 }
 
+// EnableCall enables a failpoint which is a InjectCall type failpoint.
+func (fp *Failpoint) EnableCall(fn any) error {
+	value := reflect.ValueOf(fn)
+	if value.Kind() != reflect.Func {
+		return fmt.Errorf("failpoint: not a function")
+	}
+	t, err := newTerms("return(true)", fp)
+	if err != nil {
+		return err
+	}
+	fp.mu.Lock()
+	fp.t = t
+	fp.waitChan = make(chan struct{})
+	fp.fn = &value
+	fp.mu.Unlock()
+	return nil
+}
+
 // Disable stops a failpoint
 func (fp *Failpoint) Disable() {
 	select {
@@ -109,4 +131,20 @@ func (fp *Failpoint) Eval() (Value, error) {
 		return nil, err
 	}
 	return v, nil
+}
+
+// Call calls the function passed by EnableCall with args supplied in InjectCall.
+func (fp *Failpoint) Call(args ...any) {
+	fp.mu.RLock()
+	fn := fp.fn
+	fp.mu.RUnlock()
+
+	if fn == nil {
+		return
+	}
+	argVals := make([]reflect.Value, 0, len(args))
+	for _, a := range args {
+		argVals = append(argVals, reflect.ValueOf(a))
+	}
+	fn.Call(argVals)
 }

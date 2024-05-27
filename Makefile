@@ -61,8 +61,18 @@ check-static: tools/bin/gometalinter
 
 gotest:
 	@ echo "----------- go test ---------------"
-	$(GOTEST) -covermode=atomic -coverprofile=coverage.txt -coverpkg=./... -v ./...
+	$(GOTEST) -covermode=atomic -coverprofile=coverage.txt -coverpkg=./... -v $(go list ./... | grep -v examples)
 
 tools/bin/gometalinter:
 	cd tools; \
   curl -L https://git.io/vp6lP | sh
+
+test-examples:
+	@ echo "----------- go test examples ---------------"
+	$(GO) run failpoint-ctl/main.go enable ./examples
+	$(GOTEST) -covermode=atomic -coverprofile=coverage.txt -coverpkg=./... -v ./examples/...
+	$(GO) run failpoint-ctl/main.go disable ./examples
+
+test-examples-toolexec: build
+	@ echo "----------- go test examples using toolexec ---------------"
+	GOCACHE=/tmp/failpoint-cache $(GOTEST) -covermode=atomic -coverprofile=coverage.txt -coverpkg=./... -toolexec="$(PWD)/bin/failpoint-toolexec" -v ./examples/...

@@ -133,6 +133,27 @@ func (fps *Failpoints) EnableWith(failpath, inTerms string, action func() error)
 	return nil
 }
 
+// EnableCall enables a failpoint which is a InjectCall type failpoint.
+func (fps *Failpoints) EnableCall(failpath string, fn any) error {
+	fps.mu.Lock()
+	defer fps.mu.Unlock()
+
+	if fps.reg == nil {
+		fps.reg = make(map[string]*Failpoint)
+	}
+
+	fp := fps.reg[failpath]
+	if fp == nil {
+		fp = &Failpoint{}
+		fps.reg[failpath] = fp
+	}
+	err := fp.EnableCall(fn)
+	if err != nil {
+		return errors.Wrapf(err, "error on %s", failpath)
+	}
+	return nil
+}
+
 // Disable a failpoint on failpath
 func (fps *Failpoints) Disable(failpath string) error {
 	fps.mu.Lock()
@@ -214,6 +235,18 @@ func (fps *Failpoints) Eval(failpath string) (Value, error) {
 	return val, nil
 }
 
+// Call calls the function passed by EnableCall with args supplied in InjectCall.
+func (fps *Failpoints) Call(failpath string, args ...any) {
+	fps.mu.RLock()
+	fp, found := fps.reg[failpath]
+	fps.mu.RUnlock()
+	if !found {
+		return
+	}
+
+	fp.Call(args...)
+}
+
 // failpoints is the default
 var failpoints Failpoints
 
@@ -228,6 +261,13 @@ func Enable(failpath, inTerms string) error {
 // and does some post actions before the failpoint being evaluated.
 func EnableWith(failpath, inTerms string, action func() error) error {
 	return failpoints.EnableWith(failpath, inTerms, action)
+}
+
+// EnableCall enables a failpoint which is a InjectCall type failpoint.
+// The failpoint will call the function passed by EnableCall with args supplied in InjectCall.
+// this type of failpoint does not support terms, you should control the behavior in the function.
+func EnableCall(failpath string, fn any) error {
+	return failpoints.EnableCall(failpath, fn)
 }
 
 // Disable stops a failpoint from firing.
@@ -273,4 +313,12 @@ func Eval(failpath string) (Value, error) {
 		fmt.Println(err)
 	}
 	return val, err
+}
+
+// Call calls the function passed by EnableCall with args supplied in InjectCall.
+func Call(failpath string, args ...any) {
+	if _, err := failpoints.Eval(failpath); err != nil {
+		return
+	}
+	failpoints.Call(failpath, args...)
 }
