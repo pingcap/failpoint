@@ -37,7 +37,7 @@ func main() {
 	goCmd, buildArgs := os.Args[1], os.Args[2:]
 	goCmdBase := filepath.Base(goCmd)
 	if runtime.GOOS == "windows" {
-		goCmdBase = strings.TrimSuffix(goCmd, ".exe")
+		goCmdBase = strings.TrimSuffix(goCmdBase, ".exe")
 	}
 
 	if strings.ToLower(goCmdBase) == "compile" {
