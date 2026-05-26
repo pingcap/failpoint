@@ -594,6 +594,10 @@ func (r *Rewriter) rewriteFuncDecl(fn *ast.FuncDecl) error {
 
 // RewriteFile rewrites a single file
 func (r *Rewriter) RewriteFile(path string) (err error) {
+	// Reset state up front so previous-file result does not leak into
+	// files that have nothing to rewrite (for example, doc.go).
+	r.rewritten = false
+
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("%s %v\n%s", r.currentPath, e, debug.Stack())
@@ -610,7 +614,6 @@ func (r *Rewriter) RewriteFile(path string) (err error) {
 	r.currentPath = path
 	r.currentFile = file
 	r.currsetFset = fset
-	r.rewritten = false
 
 	var failpointImport *ast.ImportSpec
 	for _, imp := range file.Imports {
