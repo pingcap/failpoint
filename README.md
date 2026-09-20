@@ -159,7 +159,7 @@ An implementation of [failpoints][failpoint] for Golang. Fail points are used to
 
     The <type> argument specifies which action to take; it can be one of:
 
-    - off: Take no action (does not trigger failpoint code)
+    - off: Take no action (does not trigger failpoint code; `Eval` returns `ErrNotAllowed`)
     - return: Trigger failpoint with specified argument
     - sleep: Sleep the specified number of milliseconds
     - panic: Panic
