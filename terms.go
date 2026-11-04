@@ -145,6 +145,11 @@ func parseTerm(desc string, fp *Failpoint) *term {
 	modStr, mods := parseMod(desc)
 	t.mods = &modList{mods}
 	actStr, act := parseAct(desc[len(modStr):])
+	if act == nil {
+		// A term without an action has nothing to run, and calling its
+		// nil act func later panics.
+		return nil
+	}
 	t.act = act
 	valStr, val := parseVal(desc[len(modStr)+len(actStr):])
 	t.val = val
