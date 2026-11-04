@@ -92,3 +92,30 @@ func TestTermsTypes(t *testing.T) {
 		}
 	}
 }
+
+func TestTermsRejectsMissingAction(t *testing.T) {
+	const fpname = "github.com/pingcap/failpoint/missingAction"
+	// A term is "<mod> <act> [ ( <val> ) ]". With the action left out there
+	// is nothing to run, and the chain used to be accepted and then call a
+	// nil act func on the first evaluation.
+	for _, desc := range []string{`1*`, `100%`, `1*2*`, `100.0%`} {
+		if _, err := newTerms(desc, nil); err == nil {
+			t.Errorf("newTerms(%q) was accepted, want a parse error", desc)
+		}
+		if err := Enable(fpname, desc); err != nil {
+			continue
+		}
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Enable(%q) was accepted and the failpoint then panicked: %v", desc, r)
+				}
+			}()
+			_, _ = Eval(fpname)
+			t.Errorf("Enable(%q) was accepted, want a parse error", desc)
+		}()
+		if err := Disable(fpname); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
