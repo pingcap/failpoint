@@ -229,6 +229,38 @@ func testPanic() {
 	_, _ = failpoint.Eval("test-panic")
 }
 
+func TestOff(t *testing.T) {
+	tests := []struct {
+		terms string
+		want  []failpoint.Value
+	}{
+		{"off", []failpoint.Value{nil, nil}},
+		{"off->return(2)", []failpoint.Value{nil, nil}},
+		{"1*return(1)->off", []failpoint.Value{1, nil, nil}},
+		{"1*off->return(2)", []failpoint.Value{nil, 2, 2}},
+		{"0*off->return(2)", []failpoint.Value{2, 2}},
+		{"return", []failpoint.Value{struct{}{}, struct{}{}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.terms, func(t *testing.T) {
+			var fps failpoint.Failpoints
+			require.NoError(t, fps.Enable("test-off", tt.terms))
+			for _, want := range tt.want {
+				value, err := fps.Eval("test-off")
+				if want == nil {
+					require.ErrorIs(t, err, failpoint.ErrNotAllowed)
+				} else {
+					require.NoError(t, err)
+				}
+				require.Equal(t, want, value)
+			}
+			status, err := fps.Status("test-off")
+			require.NoError(t, err)
+			require.Equal(t, tt.terms, status)
+		})
+	}
+}
+
 func TestCall(t *testing.T) {
 	var capturedArg int
 	require.NoError(t, failpoint.EnableCall("test", func(a int) {

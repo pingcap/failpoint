@@ -310,7 +310,7 @@ var actMap = map[string]actFunc{
 
 func (t *term) do() (interface{}, error) { return t.act(t) }
 
-func actOff(t *term) (interface{}, error) { return nil, nil }
+func actOff(t *term) (interface{}, error) { return nil, ErrNotAllowed }
 
 func actReturn(t *term) (interface{}, error) { return t.val, nil }
 
